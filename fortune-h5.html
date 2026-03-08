@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>前世身份 & 2026 财运</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --gold: #FFD700;
+      --violet: #2D005F;
+    }
+    body {
+      background: radial-gradient(120% 120% at 10% 0%, rgba(255,215,0,0.12), transparent 60%),
+                  radial-gradient(80% 80% at 90% 20%, rgba(45,0,95,0.5), transparent 60%),
+                  linear-gradient(140deg, #11011F 0%, #0A0112 45%, #05010A 100%);
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .glass {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(14px);
+    }
+    .fade-enter {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    .fade-leave {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+    .fade-active {
+      transition: all 0.35s ease;
+    }
+    .spin-slow {
+      animation: spin 1.2s linear infinite;
+    }
+    .pulse-soft {
+      animation: pulse 2.2s ease-in-out infinite;
+    }
+    .blurred {
+      filter: blur(10px);
+    }
+    .th {
+      line-height: 1.8;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.65; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.04); }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white th">
+  <div class="fixed inset-0 pointer-events-none">
+    <div class="absolute -top-24 -left-16 w-64 h-64 rounded-full bg-yellow-400/20 blur-3xl pulse-soft"></div>
+    <div class="absolute top-24 -right-10 w-72 h-72 rounded-full bg-purple-700/30 blur-3xl pulse-soft"></div>
+  </div>
+
+  <div class="relative mx-auto max-w-[430px] min-h-screen px-5 py-6 flex flex-col">
+    <section id="screen-welcome" class="flex-1 flex flex-col justify-center gap-6">
+      <div class="glass rounded-3xl p-6 text-center">
+        <div class="text-2xl font-black text-yellow-300 tracking-wide">前世身份 & 2026 财运</div>
+        <div class="mt-2 text-sm text-white/70">泰式灵性现代审美 • Royal Gold × Midnight Violet</div>
+        <div class="mt-6 h-40 rounded-2xl bg-gradient-to-br from-yellow-400/20 via-purple-700/20 to-transparent relative overflow-hidden">
+          <div class="absolute inset-0 bg-[conic-gradient(from_90deg,rgba(255,215,0,0.2),rgba(45,0,95,0.4),rgba(255,215,0,0.2))] spin-slow blur-2xl"></div>
+        </div>
+        <button id="startBtn" class="mt-6 w-full rounded-2xl bg-gradient-to-r from-yellow-300 to-yellow-100 text-[#2D005F] font-extrabold py-4 text-lg shadow-[0_12px_30px_rgba(255,215,0,0.3)]">
+          开启命运 (Discover Your Destiny)
+        </button>
+      </div>
+      <div class="text-xs text-white/60 text-center">适合竖屏浏览 • 4G 极速加载</div>
+    </section>
+
+    <section id="screen-quiz" class="hidden flex-1 flex flex-col gap-4">
+      <div class="flex items-center justify-between text-xs text-white/70">
+        <span id="progressLabel">问题 1 / 12</span>
+        <span class="text-yellow-300">Thai Oracle 2026</span>
+      </div>
+      <div id="questionCard" class="glass rounded-3xl p-5 flex flex-col gap-4 min-h-[360px]">
+        <div id="questionTitle" class="text-lg font-bold"></div>
+        <div id="questionBody" class="flex flex-col gap-3"></div>
+      </div>
+    </section>
+
+    <section id="screen-ritual" class="hidden flex-1">
+      <div class="glass rounded-3xl p-6 flex flex-col items-center justify-center text-center gap-4 w-full">
+        <div class="w-24 h-24 rounded-full border-4 border-yellow-300/30 border-t-yellow-300 border-r-purple-400 spin-slow"></div>
+        <div id="ritualText" class="text-base font-semibold"></div>
+        <div class="text-xs text-white/70">正在链接高维能量场...</div>
+      </div>
+    </section>
+
+    <section id="screen-result" class="hidden flex-1 flex flex-col gap-4">
+        <div class="glass rounded-3xl p-5 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+             <div class="text-sm text-white/70">深度灵性报告</div>
+             <div class="px-2 py-0.5 rounded border border-yellow-300/30 text-[10px] text-yellow-300">大师亲算</div>
+          </div>
+          <div class="flex flex-col items-center">
+            <div id="guardianName" class="text-2xl font-black text-yellow-300 text-center leading-snug"></div>
+            <div id="elementTag" class="mt-1 text-xs text-white/60 font-mono"></div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-center" id="keywordList"></div>
+          <div class="glass rounded-2xl p-4 relative">
+             <div class="absolute top-2 left-2 text-[10px] text-white/40">五维能量雷达</div>
+             <canvas id="radarChart" width="320" height="320"></canvas>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-1 h-4 bg-yellow-300 rounded-full"></div>
+              <div class="text-sm font-bold text-white">您的前世印记</div>
+            </div>
+            <div id="pastLifeDesc" class="text-sm text-white/80 leading-relaxed text-justify"></div>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-5 flex flex-col gap-4">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-1 h-4 bg-yellow-300 rounded-full"></div>
+            <div class="text-sm font-bold text-white">2026 流年运势详解</div>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+               <div class="text-xs text-yellow-300/80 mb-1 font-bold">🌸 春季 (Spring)</div>
+               <div id="q1Text" class="text-sm text-white/90 leading-relaxed"></div>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+               <div class="text-xs text-green-300/80 mb-1 font-bold">🌿 夏季 (Summer)</div>
+               <div id="q2Text" class="text-sm text-white/90 leading-relaxed"></div>
+            </div>
+            <div id="q3Block" class="bg-white/5 rounded-xl p-3 border border-white/5 blurred relative select-none transition-all duration-500">
+               <div class="text-xs text-orange-300/80 mb-1 font-bold">🍁 秋季 (Autumn)</div>
+               <div id="q3Text" class="text-sm text-white/90 leading-relaxed"></div>
+               <!-- Lock Icon Overlay -->
+               <div class="absolute inset-0 flex items-center justify-center z-10 lock-icon">
+                 <div class="bg-black/40 p-2 rounded-full backdrop-blur-sm">🔒</div>
+               </div>
+            </div>
+            <div id="q4Block" class="bg-white/5 rounded-xl p-3 border border-white/5 blurred relative select-none transition-all duration-500">
+               <div class="text-xs text-blue-300/80 mb-1 font-bold">❄️ 冬季 (Winter)</div>
+               <div id="q4Text" class="text-sm text-white/90 leading-relaxed"></div>
+               <!-- Lock Icon Overlay -->
+               <div class="absolute inset-0 flex items-center justify-center z-10 lock-icon">
+                 <div class="bg-black/40 p-2 rounded-full backdrop-blur-sm">🔒</div>
+               </div>
+            </div>
+          </div>
+
+          <button id="unlockBtn" class="mt-2 w-full rounded-xl bg-white/10 border border-white/20 py-4 font-semibold text-white/90 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center gap-2 group">
+            <span class="group-hover:animate-bounce">🔓</span> 解锁 2026 完整财运报告 (免费)
+          </button>
+        </div>
+
+      <button id="posterBtn" class="w-full rounded-2xl bg-gradient-to-r from-yellow-300 to-yellow-100 text-[#2D005F] font-extrabold py-4 text-lg shadow-[0_10px_24px_rgba(255,215,0,0.3)] active:scale-95 transition-transform">
+        生成好运海报 (保存图片)
+      </button>
+      <div class="h-8"></div>
+    </section>
+  </div>
+
+  <div id="adOverlay" class="fixed inset-0 hidden items-center justify-center bg-black/90 z-50 backdrop-blur-sm">
+    <div class="glass rounded-2xl px-8 py-8 text-center max-w-[80%]">
+      <div class="w-16 h-16 rounded-full border-4 border-yellow-300/30 border-t-yellow-300 border-r-purple-400 spin-slow mx-auto mb-4"></div>
+      <div class="text-lg font-bold text-yellow-300 mb-2">能量校准中...</div>
+      <div id="adText" class="text-sm text-white/80">正在为你获取完整报告... 5s</div>
+    </div>
+  </div>
+
+  <div id="posterModal" class="fixed inset-0 hidden items-center justify-center bg-black/90 z-50 p-6 backdrop-blur-md">
+    <div class="flex flex-col items-center gap-4 w-full max-w-sm">
+      <div class="text-white font-bold text-lg">您的专属好运海报已生成</div>
+      <img id="posterImg" alt="poster" class="w-full rounded-2xl shadow-2xl border border-white/10">
+      <div class="text-xs text-white/60">长按图片保存，或点击下方按钮</div>
+      <div class="flex gap-3 w-full">
+        <button id="downloadBtn" class="flex-1 rounded-xl bg-yellow-400 text-[#2D005F] font-bold px-4 py-3 shadow-lg active:scale-95 transition-transform">下载图片</button>
+        <button id="closePoster" class="flex-1 rounded-xl border border-white/30 text-white font-semibold px-4 py-3 active:scale-95 transition-transform">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Poster Source -->
+  <div style="position: fixed; left: 0; top: 0; width: 100%; height: 0; overflow: hidden; z-index: -1;">
+    <div id="posterCard" class="w-[375px] h-[667px] bg-[#0B0612] relative overflow-hidden flex flex-col">
+      <!-- Background -->
+      <div class="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,#2B0B4E_0%,#0B0612_100%)]"></div>
+      <div class="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-yellow-400/10 rounded-full blur-[80px]"></div>
+      <div class="absolute bottom-[-50px] right-[-50px] w-[300px] h-[300px] bg-purple-600/20 rounded-full blur-[80px]"></div>
+      
+      <!-- Content -->
+      <div class="relative z-10 flex flex-col h-full p-8 text-center items-center justify-between" id="posterContent">
+        <div class="mt-4">
+          <div class="text-sm text-white/60 tracking-[0.2em] uppercase mb-2">Thai Spirit Oracle</div>
+          <!-- Fix: Use solid color instead of bg-clip-text for html2canvas compatibility -->
+          <div class="text-3xl font-black text-yellow-300 drop-shadow-md">2026 财运启示</div>
+        </div>
+
+        <div class="flex flex-col items-center gap-6 w-full flex-1 justify-center">
+          <div class="w-40 h-40 rounded-full border-[4px] border-yellow-400/50 flex items-center justify-center bg-black/20 backdrop-blur-sm relative shadow-[0_0_40px_rgba(255,215,0,0.3)]">
+             <div class="absolute inset-0 rounded-full border-t-[4px] border-yellow-400 rotate-45 opacity-80"></div>
+             <div class="text-7xl drop-shadow-lg" id="posterIcon">🕉️</div>
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <div class="text-sm text-yellow-100/60 uppercase tracking-widest">Your Guardian Spirit</div>
+            <div id="posterGuardian" class="text-4xl font-black text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]"></div>
+          </div>
+          
+          <div id="posterKeywords" class="flex flex-wrap justify-center gap-3 max-w-[90%]"></div>
+        </div>
+
+        <div class="w-full space-y-4">
+          <div class="bg-white/10 border border-white/20 rounded-3xl p-5 backdrop-blur-xl shadow-2xl">
+            <div class="flex justify-between items-center text-sm py-2 border-b border-white/10">
+              <span class="text-white/60 font-medium">星盘编码</span>
+              <span id="posterCode" class="font-mono text-yellow-300 font-bold tracking-wider"></span>
+            </div>
+            <div class="flex justify-between items-center text-sm py-2 border-b border-white/10">
+              <span class="text-white/60 font-medium">年度幸运色</span>
+              <span id="posterColor" class="font-bold text-white"></span>
+            </div>
+            <div class="flex justify-between items-center text-sm py-2">
+              <span class="text-white/60 font-medium">灵数</span>
+              <span id="posterNumber" class="font-bold text-yellow-300 text-xl"></span>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-center gap-4 opacity-80 mt-4 bg-black/20 p-3 rounded-xl border border-white/5">
+            <div class="w-14 h-14 bg-white rounded-lg p-1 shadow-lg">
+               <!-- QR Placeholder -->
+               <div class="w-full h-full bg-black flex items-center justify-center text-[8px] text-white">QR CODE</div>
+            </div>
+            <div class="text-left text-xs leading-tight">
+              <div class="font-bold text-yellow-300 text-sm mb-0.5">扫码解锁</div>
+              <div class="text-white/80">您的专属 2026 运势报告</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const i18n = {
+      zh: {
+        ritual: [
+          "正在构建前世星图...",
+          "正在扫描 2026 财帛宫位...",
+          "报告已生成，正在对齐能量..."
+        ],
+        questions: [
+          { id: "birthDate", title: "您的出生日期", type: "date" },
+          { id: "birthDay", title: "您是星期几出生的？", type: "select", options: ["周日 (Sun)", "周一 (Mon)", "周二 (Tue)", "周三 (Wed)", "周四 (Thu)", "周五 (Fri)", "周六 (Sat)"] },
+          { id: "birthTime", title: "出生时段", type: "select", options: ["清晨 (05-10)", "日中 (10-14)", "日落 (14-18)", "夜晚 (18-05)"] },
+          { id: "zodiac", title: "您的生肖", type: "select", options: ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"] },
+          { id: "dream", title: "梦境中常出现的场景", type: "options", options: ["古老神庙", "金色森林", "无尽大海", "神秘洞穴", "天空之城"] },
+          { id: "sound", title: "最能吸引您的声音", type: "options", options: ["寺庙钟声", "雨滴声", "海浪声", "诵经声", "森林风声"] },
+          { id: "crisis", title: "遇到危机时您的直觉", type: "options", options: ["相信直觉", "逻辑分析", "寻找预兆", "寻求庇护"] },
+          { id: "desire", title: "内心深处最渴望的", type: "options", options: ["绝对自由", "物质安全", "名望地位", "心灵宁静"] },
+          { id: "career", title: "目前的职业属性", type: "options", options: ["创意/艺术", "商业/金融", "服务/医疗", "科技/工程"] },
+          { id: "worry", title: "2026 年最担心的", type: "options", options: ["财务状况", "感情关系", "身体健康", "个人成长"] },
+          { id: "wealth", title: "对'财富'的定义", type: "options", options: ["现金流", "资产积累", "时间自由", "社会影响力"] },
+          { id: "home", title: "理想的居住环境", type: "options", options: ["繁华都市", "静谧郊区", "水岸旁", "深山中"] }
+        ]
+      }
+    };
+
+    const state = {
+      locale: "zh",
+      index: 0,
+      answers: {},
+      unlocked: false
+    };
+
+    const guardians = [
+      {
+        name: "象神 (Ganesha) • 智慧财尊",
+        keywords: ["破除障碍", "智慧洞见", "正财稳健"],
+        element: "土 (稳定与积累)",
+        pastLife: "您的前世灵魂曾驻足于古老王朝的藏经阁或担任宫廷谋士，不仅博学多才，更懂得如何在复杂局势中平衡各方利益。这种与生俱来的洞察力，让您今生在面对商业难题时总能找到独特的解法，既务实又充满智慧。您的灵魂深处刻有'破障'的印记，任何阻碍您前行的困难，最终都会成为您登顶的垫脚石。",
+        quarters: [
+          "春季 (1-3月): 财星入库，职场或主业将迎来重要转折点。此时宜静不宜动，专注于核心业务的深耕，将获得上司或重要客户的青睐。注意文件签署细节，避免因小失大。",
+          "夏季 (4-6月): 智慧之光闪耀，适合进修、考证或学习新技能，这些投入将在下半年转化为实际收益。人际关系略显紧张，需警惕口舌之争，以和为贵，避免冲动投资。",
+          "秋季 (7-9月): 贵人运爆发，不仅有意外之财进账，更有机会结识行业大佬或合作伙伴。此时是拓展人脉、洽谈合作的最佳时机，切勿犹豫，大胆出击。",
+          "冬季 (10-12月): 年度收官之作，适合置产或进行长期理财规划。之前的努力将在此时结出硕果，财库充盈。建议进行布施或公益活动，通过财富的流动来激活更大的能量场。"
+        ]
+      },
+      {
+        name: "娜迦 (Naga) • 守护财神",
+        keywords: ["守护资产", "无限魅力", "直觉敏锐"],
+        element: "水 (流动与变化)",
+        pastLife: "前世的您是守护一方水土的祭司或神庙守护者，与自然和水源有着深刻的链接。您天生具有极强的直觉和保护欲，能够敏锐地察觉到环境的细微变化。今生，这种特质将转化为在商业嗅觉上的天赋，助您在市场波动中趋吉避凶，总能先人一步发现潜在的风险与机遇。",
+        quarters: [
+          "春季 (1-3月): 财运如流水般平稳，宜守不宜攻。此时应重点关注现有资产的保值增值，避免高风险的投机行为。家庭或居住环境的改善将为您带来新的能量。",
+          "夏季 (4-6月): 偏财运极佳，直觉异常敏锐，可尝试小额投资或购买彩票。在社交场合中，您的个人魅力将大放异彩，容易吸引异性贵人的帮助。",
+          "秋季 (7-9月): 需注意合作关系，防范小人破财。在涉及金钱往来时，务必立字为据。保持低调，避免露富，以免招致不必要的嫉妒与麻烦。",
+          "冬季 (10-12月): 财富回流，年底有大笔进账。此时适合犒劳自己，或进行一次长途旅行，水的能量将为您洗去一年的疲惫，带来新一年的好运。"
+        ]
+      },
+      {
+        name: "鬼王 (Tao Wessuwan) • 掌管财富",
+        keywords: ["无上威严", "正义之剑", "巨富格局"],
+        element: "火 (行动与力量)",
+        pastLife: "您前世是执掌律法的公正官吏或镇守边疆的将领，性格刚正不阿，深信因果。这种强大的气场延续至今，让您在职场或商场上具有天然的领导力与威慑力。只要坚持正道，财富便会如滚雪球般从四面八方汇聚而来，任何邪祟小人都无法近身。",
+        quarters: [
+          "春季 (1-3月): 事业突破带来收入倍增，可能面临职位的晋升或权力的扩大。此时需展现您的决断力，切勿优柔寡断，抓住机遇便能一飞冲天。",
+          "夏季 (4-6月): 需注意合同细节与法律风险，避免陷入纠纷。保持正直的作风将是您最大的护身符。健康方面需注意心血管与眼部的保养。",
+          "秋季 (7-9月): 投资回报丰厚，适合扩大规模或进军新市场。您的魄力将吸引志同道合的伙伴，共同开创一番事业。财运达到年度顶峰。",
+          "冬季 (10-12月): 财库充盈，但需警惕'盛极而衰'。此时最宜进行慈善积累福报，或帮助身边的人，通过分享财富来巩固您的地位与运气。"
+        ]
+      },
+      {
+        name: "古曼童 (Kuman Thong) • 招财灵童",
+        keywords: ["天赐好运", "灵动变通", "遍地商机"],
+        element: "风 (自由与传播)",
+        pastLife: "前世的您是散播快乐的艺人、游吟诗人或深受喜爱的孩童，拥有纯真的灵魂和极佳的人缘。今生您依然保持着敏锐的感受力和创造力，总能在意想不到的地方发现商机。您的财富往往伴随着快乐和轻松的氛围而来，是典型的'快乐搞钱'体质。",
+        quarters: [
+          "春季 (1-3月): 意外之财频发，手气极佳。无论是抽奖还是临时的小项目，都能带来惊喜的收益。保持乐观的心态，好运将如影随形。",
+          "夏季 (4-6月): 适合开展副业、创意项目或涉足互联网领域。您的新奇点子将转化为实际的真金白银。多参加社交活动，信息差就是您的财富源泉。",
+          "秋季 (7-9月): 开销增大，需做好理财规划。可能会有因兴趣爱好或人情往来而产生的大额支出，但这些支出往往能带来长远的回报。",
+          "冬季 (10-12月): 社交圈带来重要搞钱机会，可能通过朋友介绍获得大客户或优质资源。年底适合复盘与庆祝，为新的一年积蓄能量。"
+        ]
+      }
+    ];
+
+
+    const progressLabel = document.getElementById("progressLabel");
+    const questionTitle = document.getElementById("questionTitle");
+    const questionBody = document.getElementById("questionBody");
+    const questionCard = document.getElementById("questionCard");
+    const guardianName = document.getElementById("guardianName");
+    const elementTag = document.getElementById("elementTag");
+    const keywordList = document.getElementById("keywordList");
+    const pastLifeDesc = document.getElementById("pastLifeDesc");
+    const q1Text = document.getElementById("q1Text");
+    const q2Text = document.getElementById("q2Text");
+    const q3Text = document.getElementById("q3Text");
+    const q4Text = document.getElementById("q4Text");
+    const q3Block = document.getElementById("q3Block");
+    const q4Block = document.getElementById("q4Block");
+    // Get Lock Icons
+    const lockIcons = document.querySelectorAll(".lock-icon");
+    const ritualText = document.getElementById("ritualText");
+    const unlockBtn = document.getElementById("unlockBtn");
+    const adOverlay = document.getElementById("adOverlay");
+    const adText = document.getElementById("adText");
+    const posterBtn = document.getElementById("posterBtn");
+    const posterModal = document.getElementById("posterModal");
+    const posterImg = document.getElementById("posterImg");
+    const posterGuardian = document.getElementById("posterGuardian");
+    const posterKeywords = document.getElementById("posterKeywords");
+    const posterCode = document.getElementById("posterCode");
+    const posterColor = document.getElementById("posterColor");
+    const posterNumber = document.getElementById("posterNumber");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const closePoster = document.getElementById("closePoster");
+
+    function showScreen(id) {
+      ["screen-welcome", "screen-quiz", "screen-ritual", "screen-result"].forEach(key => {
+        document.getElementById(key).classList.add("hidden");
+      });
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function renderQuestion() {
+      const q = i18n[state.locale].questions[state.index];
+      progressLabel.textContent = `คำถาม ${state.index + 1} / 12`;
+      questionTitle.textContent = q.title;
+      questionBody.innerHTML = "";
+      questionCard.classList.add("fade-active", "fade-enter");
+      setTimeout(() => {
+        questionCard.classList.remove("fade-enter");
+      }, 20);
+      if (q.type === "date") {
+        const container = document.createElement("div");
+        container.className = "flex gap-2";
+        
+        // Year
+        const yearSel = document.createElement("select");
+        yearSel.className = "flex-1 rounded-xl bg-white/10 border border-white/20 px-2 py-3 text-white text-sm appearance-none text-center";
+        yearSel.style.backgroundImage = "none";
+        for (let y = 2015; y >= 1960; y--) {
+          const opt = document.createElement("option");
+          opt.value = y;
+          opt.textContent = y;
+          opt.className = "text-black";
+          yearSel.appendChild(opt);
+        }
+        
+        // Month
+        const monthSel = document.createElement("select");
+        monthSel.className = "flex-1 rounded-xl bg-white/10 border border-white/20 px-2 py-3 text-white text-sm appearance-none text-center";
+        monthSel.style.backgroundImage = "none";
+        for (let m = 1; m <= 12; m++) {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m + "月";
+          opt.className = "text-black";
+          monthSel.appendChild(opt);
+        }
+
+        // Day
+        const daySel = document.createElement("select");
+        daySel.className = "flex-1 rounded-xl bg-white/10 border border-white/20 px-2 py-3 text-white text-sm appearance-none text-center";
+        daySel.style.backgroundImage = "none";
+        for (let d = 1; d <= 31; d++) {
+          const opt = document.createElement("option");
+          opt.value = d;
+          opt.textContent = d + "日";
+          opt.className = "text-black";
+          daySel.appendChild(opt);
+        }
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.className = "w-full mt-4 rounded-xl bg-white/20 py-3 font-bold text-yellow-300";
+        confirmBtn.textContent = "确认";
+        confirmBtn.onclick = () => {
+          state.answers[q.id] = `${yearSel.value}-${monthSel.value}-${daySel.value}`;
+          nextQuestion();
+        };
+
+        container.appendChild(yearSel);
+        container.appendChild(monthSel);
+        container.appendChild(daySel);
+        
+        questionBody.appendChild(container);
+        questionBody.appendChild(confirmBtn);
+      } else if (q.type === "select") {
+        const select = document.createElement("select");
+        select.className = "w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "请选择";
+        select.appendChild(placeholder);
+        q.options.forEach(opt => {
+          const option = document.createElement("option");
+          option.value = opt;
+          option.textContent = opt;
+          select.appendChild(option);
+        });
+        select.onchange = () => {
+          if (!select.value) return;
+          state.answers[q.id] = select.value;
+          nextQuestion();
+        };
+        questionBody.appendChild(select);
+      } else {
+        q.options.forEach(opt => {
+          const btn = document.createElement("button");
+          btn.className = "w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-left font-semibold";
+          btn.textContent = opt;
+          btn.onclick = () => {
+            state.answers[q.id] = opt;
+            nextQuestion();
+          };
+          questionBody.appendChild(btn);
+        });
+      }
+    }
+
+    function nextQuestion() {
+      questionCard.classList.add("fade-active", "fade-leave");
+      setTimeout(() => {
+        questionCard.classList.remove("fade-leave");
+        state.index += 1;
+        if (state.index >= i18n[state.locale].questions.length) {
+          startRitual();
+        } else {
+          renderQuestion();
+        }
+      }, 220);
+    }
+
+    function startRitual() {
+      showScreen("screen-ritual");
+      const steps = i18n[state.locale].ritual;
+      let idx = 0;
+      ritualText.textContent = steps[idx];
+      const timer = setInterval(() => {
+        idx += 1;
+        if (idx >= steps.length) {
+          clearInterval(timer);
+          setTimeout(showResult, 800);
+        } else {
+          ritualText.textContent = steps[idx];
+        }
+      }, 2000);
+    }
+
+    function showResult() {
+      const g = guardians[Math.floor(Math.random() * guardians.length)];
+      
+      guardianName.textContent = g.name;
+      elementTag.textContent = `五行属性: ${g.element}`;
+      
+      keywordList.innerHTML = "";
+      g.keywords.forEach(k => {
+        const tag = document.createElement("div");
+        tag.className = "px-3 py-1 bg-white/10 rounded-full text-xs text-yellow-100 border border-white/10";
+        tag.textContent = k;
+        keywordList.appendChild(tag);
+      });
+
+      pastLifeDesc.textContent = g.pastLife;
+      q1Text.textContent = g.quarters[0];
+      q2Text.textContent = g.quarters[1];
+      q3Text.textContent = g.quarters[2];
+      q4Text.textContent = g.quarters[3];
+      
+      // Ensure locks are visible initially
+      lockIcons.forEach(el => el.style.display = "flex");
+      q3Block.classList.add("blurred");
+      q4Block.classList.add("blurred");
+      state.unlocked = false;
+      
+      showScreen("screen-result");
+      renderRadar();
+    }
+
+    let radarChart;
+    function renderRadar() {
+      const ctx = document.getElementById("radarChart");
+      if (radarChart) radarChart.destroy();
+      const values = [
+        Math.floor(65 + Math.random() * 35),
+        Math.floor(60 + Math.random() * 40),
+        Math.floor(70 + Math.random() * 25),
+        Math.floor(65 + Math.random() * 30),
+        Math.floor(60 + Math.random() * 35)
+      ];
+      radarChart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: ["财富", "人缘", "事业", "灵性", "健康"],
+          datasets: [{
+            data: values,
+            fill: true,
+            backgroundColor: "rgba(255,215,0,0.2)",
+            borderColor: "#FFD700",
+            pointBackgroundColor: "#FFD700",
+            pointBorderColor: "#2D005F",
+            pointRadius: 4,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              angleLines: { color: "rgba(255,255,255,0.08)" },
+              grid: { color: "rgba(255,255,255,0.08)" },
+              pointLabels: { color: "rgba(255,255,255,0.7)", font: { size: 12, family: "PingFang SC" } },
+              ticks: { display: false, stepSize: 20 }
+            }
+          }
+        }
+      });
+    }
+
+    function unlockReport() {
+      let remain = 5;
+      adOverlay.classList.remove("hidden");
+      adOverlay.classList.add("flex");
+      adText.textContent = `正在为你获取完整报告... ${remain}s`;
+      const timer = setInterval(() => {
+        remain -= 1;
+        adText.textContent = `正在为你获取完整报告... ${remain}s`;
+        if (remain <= 0) {
+          clearInterval(timer);
+          adOverlay.classList.add("hidden");
+          adOverlay.classList.remove("flex");
+          q3Block.classList.remove("blurred");
+          q4Block.classList.remove("blurred");
+          // Hide locks
+          document.querySelectorAll(".lock-icon").forEach(el => el.style.display = "none");
+          state.unlocked = true;
+        }
+      }, 1000);
+    }
+
+    async function generatePoster() {
+      if (!state.unlocked) {
+        // Auto unlock if user clicks poster first, or just warn. 
+        // Better UX: prompt to unlock first or just run unlock then poster.
+        // For now, let's just run unlock logic then show poster? No, ad first.
+        unlockReport();
+        // Wait for unlock? The unlock is async via setInterval. 
+        // Let's just return and let user click again after ad.
+        return;
+      }
+      
+      // Populate Poster Data
+      const name = guardianName.textContent.split("•")[0].trim();
+      posterGuardian.textContent = name;
+      
+      // Determine theme based on guardian name (simplified logic)
+      const posterCard = document.getElementById("posterCard");
+      const posterIcon = document.getElementById("posterIcon");
+      const bgLayer = posterCard.querySelector(".absolute.inset-0");
+      
+      // Reset classes
+      posterCard.className = "w-[375px] h-[667px] relative overflow-hidden flex flex-col";
+      
+      // Theme Logic
+      if (name.includes("象神") || name.includes("Ganesha")) {
+        // Ganesha Theme
+        bgLayer.className = "absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,#4A0404_0%,#1A0101_100%)]";
+        // Use placeholder for real artwork
+        posterIcon.innerHTML = `<img src="https://placehold.co/400x400/4A0404/FFD700?text=Ganesha+Art" class="w-full h-full object-cover rounded-full opacity-90" crossorigin="anonymous">`;
+        posterCard.style.border = "4px solid #FFD700";
+      } else if (name.includes("娜迦") || name.includes("Naga")) {
+        // Naga Theme
+        bgLayer.className = "absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,#002F24_0%,#000F0A_100%)]";
+        posterIcon.innerHTML = `<img src="https://placehold.co/400x400/002F24/00FF9D?text=Naga+Art" class="w-full h-full object-cover rounded-full opacity-90" crossorigin="anonymous">`;
+        posterCard.style.border = "4px solid #00FF9D";
+      } else if (name.includes("鬼王") || name.includes("Tao")) {
+        // Ghost King Theme
+        bgLayer.className = "absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,#2D0000_0%,#000000_100%)]";
+        posterIcon.innerHTML = `<img src="https://placehold.co/400x400/2D0000/FF0000?text=Tao+Wessuwan" class="w-full h-full object-cover rounded-full opacity-90" crossorigin="anonymous">`;
+        posterCard.style.border = "4px solid #FF0000";
+      } else if (name.includes("古曼童") || name.includes("Kuman")) {
+        // Golden Child Theme
+        bgLayer.className = "absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,#5E4B00_0%,#1A1200_100%)]";
+        posterIcon.innerHTML = `<img src="https://placehold.co/400x400/5E4B00/FFD700?text=Kuman+Thong" class="w-full h-full object-cover rounded-full opacity-90" crossorigin="anonymous">`;
+        posterCard.style.border = "4px solid #FFD700";
+      } else {
+        // Default Theme
+        bgLayer.className = "absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,#2B0B4E_0%,#0B0612_100%)]";
+        posterIcon.innerHTML = `<div class="text-7xl">🕉️</div>`;
+        posterCard.style.border = "none";
+      }
+
+      posterKeywords.innerHTML = "";
+      Array.from(keywordList.children).forEach(tag => {
+        const t = document.createElement("span");
+        t.className = "px-4 py-1.5 rounded-full text-sm font-bold border border-white/30 text-white bg-white/10 shadow-sm";
+        t.textContent = tag.textContent;
+        posterKeywords.appendChild(t);
+      });
+      posterCode.textContent = `TH-${Math.floor(100000 + Math.random() * 900000)}`;
+      const colors = ["皇家金", "极夜紫", "翡翠绿", "深海蓝", "宝石红"];
+      posterColor.textContent = colors[Math.floor(Math.random() * colors.length)];
+      posterNumber.textContent = `${Math.floor(10 + Math.random() * 89)}`;
+      
+      const card = document.getElementById("posterCard");
+      
+      // Use html2canvas
+      try {
+        const canvas = await html2canvas(card, { 
+          scale: 3, 
+          useCORS: true, 
+          backgroundColor: null,
+          logging: false
+        });
+        posterImg.src = canvas.toDataURL("image/png");
+        posterModal.classList.remove("hidden");
+        posterModal.classList.add("flex");
+      } catch (e) {
+        console.error("Poster generation failed", e);
+        alert("海报生成失败，请重试");
+      }
+    }
+
+    document.getElementById("startBtn").onclick = () => {
+      state.index = 0;
+      state.answers = {};
+      showScreen("screen-quiz");
+      renderQuestion();
+    };
+    unlockBtn.onclick = unlockReport;
+    posterBtn.onclick = generatePoster;
+    downloadBtn.onclick = () => {
+      const link = document.createElement("a");
+      link.download = "thai-oracle-2026.png";
+      link.href = posterImg.src;
+      link.click();
+    };
+    closePoster.onclick = () => {
+      posterModal.classList.add("hidden");
+      posterModal.classList.remove("flex");
+    };
+  </script>
+</body>
+</html>

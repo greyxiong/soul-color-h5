@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Today's Soul Color</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --primary: #FFFFFF;
+      --secondary: #000000;
+      --bg-color: #F3F4F6;
+    }
+    body {
+      font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      transition: background-color 0.8s ease-in-out;
+      background-color: var(--bg-color);
+      overflow-x: hidden;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    }
+    .fade-enter {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .fade-enter-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .aurora-bg {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
+      background-size: 300% 300%;
+      animation: aurora 6s ease infinite;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: -1;
+      filter: blur(40px);
+    }
+    .aurora-active {
+      opacity: 0.8;
+    }
+    @keyframes aurora {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+      animation: scan 1.5s linear infinite;
+      z-index: 10;
+    }
+    @keyframes scan {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .blurred-content {
+      filter: blur(8px);
+      user-select: none;
+      pointer-events: none;
+      transition: filter 0.8s ease;
+    }
+    .unblurred {
+      filter: blur(0);
+      user-select: auto;
+      pointer-events: auto;
+    }
+    .option-btn {
+      transition: all 0.2s ease;
+    }
+    .option-btn:active {
+      transform: scale(0.98);
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+    /* Hide scrollbar */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="text-gray-800 min-h-screen relative flex flex-col items-center">
+  
+  <div class="aurora-bg" id="auroraBg"></div>
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md min-h-screen flex flex-col relative z-10 px-6 py-8">
+    
+    <!-- Screen: Welcome -->
+    <section id="screen-welcome" class="flex-1 flex flex-col justify-center items-center gap-8 text-center fade-enter-active">
+      <div class="w-32 h-32 rounded-full flex items-center justify-center relative overflow-hidden animate-pulse">
+        <!-- Minimal Gradient Orb -->
+        <div class="absolute inset-0 bg-[conic-gradient(from_0deg,red,orange,yellow,green,blue,indigo,violet,red)] opacity-30 blur-xl"></div>
+        <div class="absolute inset-2 bg-white rounded-full"></div>
+        <div class="absolute inset-3 bg-[conic-gradient(from_180deg,#A2E4B8,#FFB385,#4A6FA5,#B39DDB,#F8BBD0,#A2E4B8)] rounded-full blur-md opacity-80"></div>
+        <!-- Inner Glow -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-white/40 to-transparent rounded-full z-10"></div>
+      </div>
+      
+      <div>
+        <h1 class="text-3xl font-light tracking-tight mb-2">Today's Soul Color</h1>
+        <p class="text-sm text-gray-500 font-light tracking-wider uppercase">What is your soul color today?</p>
+      </div>
+
+      <div class="text-xs text-gray-400 max-w-[260px] leading-relaxed">
+        Discover your current aura and 2026 wealth flow through 8 minimalist aesthetic tests combined with your birth energy.
+      </div>
+
+      <button id="startBtn" class="mt-8 px-10 py-4 rounded-full bg-black text-white text-sm font-bold tracking-widest shadow-xl hover:bg-gray-800 transition-colors w-full max-w-[200px]">
+        START TEST
+      </button>
+    </section>
+
+    <!-- Screen: Birthday Input -->
+    <section id="screen-dob" class="hidden flex-1 flex flex-col justify-center items-center gap-8 text-center fade-enter-active w-full">
+      <div>
+        <h2 class="text-2xl font-light mb-2">Your Birth Moment</h2>
+        <p class="text-xs text-gray-400 uppercase tracking-widest">Connect with your birth energy</p>
+      </div>
+      
+      <div class="flex gap-2 w-full justify-center px-4">
+        <select id="dob-year" class="bg-white/50 border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-gray-400 w-1/3 text-center appearance-none">
+          <option value="" disabled selected>Year</option>
+        </select>
+        <select id="dob-month" class="bg-white/50 border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-gray-400 w-1/3 text-center appearance-none">
+          <option value="" disabled selected>Month</option>
+        </select>
+        <select id="dob-day" class="bg-white/50 border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-gray-400 w-1/3 text-center appearance-none">
+          <option value="" disabled selected>Day</option>
+        </select>
+      </div>
+
+      <button id="confirmDobBtn" class="mt-4 px-10 py-4 rounded-full bg-gray-900 text-white text-sm font-bold tracking-widest shadow-xl hover:bg-gray-800 transition-colors w-full max-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed">
+        NEXT
+      </button>
+    </section>
+
+    <!-- Screen: Quiz -->
+    <section id="screen-quiz" class="hidden flex-1 flex flex-col justify-start py-4">
+      <div class="flex justify-between items-center text-xs text-gray-400 uppercase tracking-widest mb-10 mt-2">
+        <span id="progressText">Question 1/8</span>
+        <span>Soul Color</span>
+      </div>
+
+      <div class="flex flex-col justify-start pt-4">
+        <h2 id="questionText" class="text-2xl font-light mb-8 text-center leading-snug fade-enter-active"></h2>
+        
+        <div id="optionsContainer" class="flex flex-col gap-3">
+          <!-- Options injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen: Ritual (Loading) -->
+    <section id="screen-ritual" class="hidden flex-1 flex flex-col justify-center items-center text-center relative">
+      <div class="w-64 h-64 relative glass rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
+        <div class="scan-line"></div>
+        <div id="ritualText" class="text-gray-500 text-sm tracking-widest font-light z-10 bg-white/50 px-4 py-1 rounded-full backdrop-blur-sm transition-opacity duration-1000 opacity-100">
+          Sensing your energy frequency...
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen: Result (Detailed Analysis) -->
+    <section id="screen-result" class="hidden flex-1 flex flex-col gap-6 pb-6 fade-enter-active">
+      <!-- Header -->
+      <div class="flex justify-between items-end">
+        <div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mb-1">Your Color Today</div>
+          <h2 id="resultColorName" class="text-4xl font-light tracking-tight"></h2>
+        </div>
+        <div id="resultColorCircle" class="w-12 h-12 rounded-full shadow-lg border-2 border-white"></div>
+      </div>
+
+      <!-- Main Analysis -->
+      <div class="glass rounded-2xl p-6 shadow-sm">
+        <div class="text-xs text-gray-400 uppercase tracking-widest mb-3">Today's Soul Analysis</div>
+        <p id="resultDesc" class="text-sm text-gray-700 leading-relaxed text-justify font-light"></p>
+      </div>
+
+      <!-- Radar & Past Life -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="glass rounded-2xl p-1 flex flex-col items-center justify-center aspect-square">
+          <canvas id="radarChart"></canvas>
+        </div>
+        <div class="glass rounded-2xl p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Past Life Connection</div>
+            <p id="pastLifeText" class="text-xs text-gray-600 leading-snug"></p>
+          </div>
+          <div class="mt-2 pt-2 border-t border-gray-100">
+            <div class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Energy Level</div>
+            <div class="text-xl font-light" id="energyScore"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wealth Prediction (Blurred) -->
+      <div class="relative mt-2">
+        <div id="wealthGuide" class="glass rounded-2xl p-6 blurred-content transition-all duration-700">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-xl">💰</span>
+            <span class="text-sm font-bold tracking-wide">2026 Wealth Energy</span>
+          </div>
+          <div class="space-y-4">
+             <div>
+               <div class="text-xs text-gray-400 mb-1">Money Advice</div>
+               <p id="wealthAdvice" class="text-sm text-gray-700 leading-relaxed"></p>
+             </div>
+             <div class="pt-3 border-t border-gray-200/50">
+               <div class="text-xs text-gray-400 mb-1">Wealth Opportunity</div>
+               <p id="wealthOpportunity" class="text-sm text-gray-700 leading-relaxed"></p>
+             </div>
+          </div>
+        </div>
+        
+        <!-- Unlock Overlay -->
+        <div id="unlockOverlay" class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/20 backdrop-blur-md rounded-2xl">
+          <div class="mb-4 w-64 h-16 bg-gray-100/80 flex items-center justify-center text-xs text-gray-400 border border-gray-300 border-dashed rounded shadow-inner">
+            [AD SPACE: 320x50 Banner]
+          </div>
+          <button id="unlockBtn" class="bg-black text-white px-6 py-3 rounded-full text-xs font-bold tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
+            <span>📺</span> WATCH AD TO UNLOCK
+          </button>
+          <p class="text-[10px] text-gray-500 mt-2">Reveal your wealth energy (Free)</p>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white/90 to-transparent z-40 flex flex-col items-center gap-3 backdrop-blur-[2px]">
+        <button id="goToPosterBtn" class="w-full max-w-sm bg-gray-900 text-white py-4 rounded-xl text-sm font-bold tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-2">
+          Save and Share
+        </button>
+        <button onclick="location.reload()" class="text-xs text-gray-400 hover:text-gray-600 underline">
+          Retest
+        </button>
+      </div>
+      
+      <!-- Spacer for scroll -->
+      <div class="h-24 w-full"></div>
+    </section>
+
+    <!-- Screen: Poster (Hidden) -->
+    <section id="screen-poster" class="hidden flex-1 flex flex-col items-center justify-start pt-6 fade-enter-active w-full h-full fixed inset-0 z-50 bg-[#F3F4F6] overflow-y-auto">
+      
+      <!-- Poster Card Container -->
+      <div class="flex-1 flex flex-col items-center justify-center w-full px-4 min-h-0 shrink-0">
+        <div id="poster-card" class="relative w-full aspect-[9/16] max-w-[330px] glass rounded-3xl px-5 pt-5 pb-6 flex flex-col justify-between overflow-hidden shadow-2xl transition-transform duration-300 transform scale-100">
+          <!-- Top: Date & Branding -->
+          <div class="flex justify-between items-center border-b border-gray-200/50 pb-2">
+            <div class="flex flex-col">
+              <span id="posterDateDisplay" class="text-xs font-bold tracking-widest text-gray-400 uppercase">DEC 12</span>
+              <span class="text-[10px] text-gray-300 tracking-widest uppercase">Soul Color</span>
+            </div>
+            <!-- Star Icon -->
+            <div class="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 text-sm">
+              ✨
+            </div>
+          </div>
+
+          <!-- Middle: Core Visual -->
+          <div class="flex-1 flex flex-col items-center justify-center gap-1 text-center my-0 min-h-0">
+            <!-- Color Circle with Glow -->
+            <div class="relative group scale-95 origin-center">
+              <div id="posterGlow" class="absolute inset-0 rounded-full blur-xl opacity-40 transition-opacity duration-1000"></div>
+              <div id="posterCircle" class="w-20 h-20 rounded-full shadow-inner border-4 border-white relative z-10 transition-transform duration-500 group-hover:scale-105"></div>
+            </div>
+            
+            <div>
+              <h2 id="posterColorTitle" class="text-2xl font-light tracking-tight text-gray-900 mb-0.5">Holographic</h2>
+              <p id="posterHexCode" class="font-mono text-xs text-gray-400 tracking-widest">#FFFFFF</p>
+            </div>
+
+            <!-- Insight -->
+            <div class="relative mt-1 px-3 py-1.5 bg-white/40 rounded-xl backdrop-blur-sm border border-white/40">
+              <div class="absolute -top-2 left-1/2 -translate-x-1/2 text-gray-300 text-xs">❝</div>
+              <p id="posterInsight" class="text-xs text-gray-700 italic font-serif leading-relaxed">
+                You caught yourself sighing without realizing it earlier today.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bottom: Footer -->
+          <div class="grid grid-cols-2 gap-4 border-t border-gray-200/50 pt-2 mt-auto pb-2">
+            <div class="flex flex-col gap-1">
+              <span class="text-[10px] text-gray-400 uppercase tracking-widest">Lucky No.</span>
+              <span id="posterLucky" class="text-lg font-light text-gray-800 leading-tight">7</span>
+            </div>
+            <div class="flex flex-col gap-1 text-right">
+              <span class="text-[10px] text-gray-400 uppercase tracking-widest">Avoid</span>
+              <span id="posterAvoidDisplay" class="text-xs font-light text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis leading-[1.4] pb-1.5 inline-block -translate-y-[1px]">Negative Talk</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spacer to ensure card is not covered by fixed bottom bar -->
+      <div class="w-full h-[220px] shrink-0"></div>
+
+      <!-- Bottom Action Bar (Fixed) -->
+      <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#F3F4F6] via-[#F3F4F6]/95 to-transparent z-50 flex flex-col gap-3 backdrop-blur-sm">
+        <button id="shareSocialBtn" class="w-full bg-gray-900 text-white py-4 rounded-2xl text-sm font-bold tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-2 group">
+          <span class="group-hover:animate-bounce">✨</span> Share to social media
+        </button>
+        <button id="longPressSaveBtn" class="w-full border border-gray-300 bg-white/50 text-gray-600 py-4 rounded-2xl text-sm font-bold tracking-widest hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center gap-2">
+          <span>⬇️</span> Save image
+        </button>
+        <button id="backToResultBtn" class="text-xs text-gray-400 underline mt-2 text-center w-full">Back to Analysis</button>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Ad Modal -->
+  <div id="adModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl">
+      <div class="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+      <h3 class="text-lg font-bold mb-2">Playing Ad...</h3>
+      <p id="adTimer" class="text-sm text-gray-500">Remaining 5s</p>
+    </div>
+  </div>
+
+  <!-- Poster Modal -->
+  <div id="posterModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-white z-[60]">
+    <div class="absolute top-4 right-4 z-20">
+      <button id="closePosterBtn" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold">✕</button>
+    </div>
+    
+    <div class="flex flex-col items-center gap-6 w-full h-full justify-center p-6 bg-gray-50">
+      <img id="posterImage" class="w-auto h-[60vh] shadow-2xl rounded-xl object-contain" alt="Soul Color Poster">
+      <div class="text-xs text-gray-400 text-center mb-2">
+        Long press to share · Image generated
+      </div>
+      <a id="downloadLink" href="#" class="px-8 py-3 bg-black text-white rounded-full text-sm font-bold shadow-lg hover:scale-105 transition-transform">
+        Generate today's soul poster
+      </a>
+    </div>
+  </div>
+
+  <!-- Hidden Poster Source -->
+  <div class="fixed left-[-9999px] top-0">
+    <div id="posterSource" class="w-[1080px] h-[1920px] bg-[#F8F8F8] relative flex flex-col items-center justify-between p-[120px] text-center font-sans">
+      <!-- Top Date -->
+      <div class="w-full flex justify-between items-center text-[40px] text-gray-400 font-light tracking-[0.2em] uppercase border-b-[3px] border-gray-200 pb-8">
+        <span id="posterDate">DEC 12</span>
+        <span>SOUL COLOR</span>
+      </div>
+
+      <!-- Main Color Block -->
+      <div class="flex-1 flex flex-col items-center justify-center w-full gap-[60px]">
+        <div id="posterColorBlock" class="w-[500px] h-[500px] rounded-full shadow-[0_40px_100px_rgba(0,0,0,0.1)] flex items-center justify-center relative">
+          <!-- Glass effect overlay inside -->
+          <div class="absolute inset-0 rounded-full bg-white/10 backdrop-blur-[2px]"></div>
+        </div>
+        
+        <div class="flex flex-col gap-[20px]">
+          <h1 id="posterColorName" class="text-[100px] font-thin tracking-tight leading-none text-gray-900">Mint Green</h1>
+          <div id="posterHex" class="text-[40px] font-mono text-gray-400 tracking-widest">#A2E4B8</div>
+        </div>
+      </div>
+
+      <!-- Bottom Info -->
+      <div class="w-full grid grid-cols-2 gap-[60px] text-left border-t-[3px] border-gray-200 pt-[80px]">
+        <div>
+          <div class="text-[32px] text-gray-400 uppercase tracking-widest mb-4">Lucky No.</div>
+          <div id="posterLuckyNum" class="text-[80px] font-light text-gray-900 leading-none">7</div>
+        </div>
+        <div>
+          <div class="text-[32px] text-gray-400 uppercase tracking-widest mb-4">Avoid</div>
+          <div id="posterAvoid" class="text-[40px] font-light text-gray-900 leading-tight">Negative Talk</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="absolute bottom-[40px] text-[24px] text-gray-300 tracking-[0.5em] uppercase">
+        Design by Soul Color
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Barnum Effect Data ---
+    const oddlySpecificPhrases = [
+      "You caught yourself sighing without realizing it earlier today.",
+      "There was a brief moment today when you wanted to mute a specific group chat.",
+      "You opened an app on your phone today, stared at it, and closed it without doing anything.",
+      "Your shoulders have been tense for a while now, and you just noticed it.",
+      "A fleeting thought of escaping to somewhere near the water crossed your mind today."
+    ];
+
+    // --- Data & Logic ---
+    const questions = [
+      { id: 1, text: "Close your eyes and breathe. What energy do you want to inhale?", options: ["Healing Forest", "Vital Sun", "Quiet Rain", "Free Wind"], colors: ["#2D6A4F", "#F4A261", "#457B9D", "#A8DADC"] },
+      { id: 2, text: "If you could only wear one color tone today?", options: ["Minimalist Black & White", "Warm Earthy", "Soft Pastel", "Vibrant Bold"], colors: ["#2B2D42", "#BC6C25", "#B5838D", "#E63946"] },
+      { id: 3, text: "What drink does your soul crave right now?", options: ["Iced Americano", "Hot Tea", "Sparkling Water", "Fresh Juice"], colors: ["#3E2723", "#D35400", "#AED6F1", "#F1C40F"] },
+      { id: 4, text: "Which sound soothes your spirit the most?", options: ["Rain on Window", "Classical Piano", "Birds in Woods", "Total Silence"], colors: ["#5D6D7E", "#1ABC9C", "#E74C3C", "#ECF0F1"] },
+      { id: 5, text: "Where would your soul teleport to instantly?", options: ["Iceland Aurora", "Kyoto Cherry", "New York City Skyline", "Snow Mountain"], colors: ["#8E44AD", "#FFC0CB", "#34495E", "#ECF0F1"] },
+      { id: 6, text: "First instinct when facing sudden pressure?", options: ["Analyze Calmly", "Seek Venting", "Withdraw Away", "Act Immediately"], colors: ["#3498DB", "#F39C12", "#95A5A6", "#C0392B"] },
+      { id: 7, text: "Your desired social state right now?", options: ["Deep Talk", "Lively Party", "Recharge Alone", "Online Chat"], colors: ["#8E44AD", "#E67E22", "#2C3E50", "#2ECC71"] },
+      { id: 8, text: "What guidance do you wish to dream of tonight?", options: ["Freedom to Fly", "Ocean Embrace", "Maze Solution", "Light of Hope"], colors: ["#3498DB", "#16A085", "#7F8C8D", "#F1C40F"] }
+    ];
+
+    const results = [
+      // --- Red/Pink Series (Action, Love, Passion) ---
+      { 
+        name: "Blazing Red", 
+        hex: "#E63946", 
+        desc: "Today, you are a burning flame, full of action and desire for conquest. Your energy field is aggressive, craving challenging tasks; obstacles seem insignificant before you. This dominant state is perfect for negotiations, competitions, or launching new business projects. Your leadership charisma is overflowing, easily infecting and leading those around you. However, be careful not to break from being too rigid; while charging forward, learn to compromise and maneuver. A balance of strength and flexibility will take you further.", 
+        pastLife: "In a past life, you were an undefeated general, wielding a spear to defend your country with a will of steel.", 
+        wealthAdvice: "Explosive wealth potential. Suitable for short, fast investment operations. Decisiveness today allows you to seize fleeting opportunities. Avoid indecision.", 
+        wealthOpportunity: "Sports competitions, emerging tech, or high-risk high-return short-term projects, even lottery.", 
+        avoid: "Impulsive Anger", 
+        luckyNum: "1", 
+        radar: [90, 70, 85, 60, 80] 
+      },
+      { 
+        name: "Sakura Pink", 
+        hex: "#F8BBD0", 
+        desc: "Today, you are wrapped in tenderness and love, your heart soft and sensitive. You are highly perceptive of others' kindness and willing to give care and help. This state makes you thrive in emotional relationships. Like cherry blossoms in spring, though seemingly fragile, you possess a powerful healing strength, easily dissolving past misunderstandings. While loving others, remember to love yourself—buy yourself flowers or a good meal to nourish your inner child.", 
+        pastLife: "In a past life, you were a royal weaver in the palace, weaving beautiful totems with colorful silk, symbolizing auspiciousness and happiness.", 
+        wealthAdvice: "Strong desire to spend for love. Control emotional spending. Suitable for buying small items that improve life happiness or aesthetics. Investing in yourself is always the best deal.", 
+        wealthOpportunity: "Female market, pet economy, beauty industry, or 'beauty' related industries.", 
+        avoid: "Arguments & Conflict", 
+        luckyNum: "3", 
+        radar: [55, 85, 60, 50, 75] 
+      },
+      { 
+        name: "Coral Reef", 
+        hex: "#FF7F50", 
+        desc: "Today, you are full of vitality and affinity, like a brilliant coral reef under the sea, radiating light. Your presence is a social magnet, easily blending into any circle and becoming the center of conversation. This energy is perfect for organizing parties, team building, or public speaking. Your passion instantly ignites the room. Interpersonal interactions are exceptionally smooth today; everyone is willing to give you face. Use this popularity to connect with more interesting souls.", 
+        pastLife: "In a past life, you were a dancer on a tropical island, praying for harvest with passionate dances by the bonfire, spreading joy.", 
+        wealthAdvice: "Network is net worth. Today's wealth lies in social interactions. Don't skimp on treating others; it's an investment for the future. A casual conversation might lead to a big deal.", 
+        wealthOpportunity: "PR events, community management, exhibitions, or any field dealing with people.", 
+        avoid: "Isolation", 
+        luckyNum: "5", 
+        radar: [60, 95, 75, 65, 70] 
+      },
+      { 
+        name: "Rouge", 
+        hex: "#C2185B", 
+        desc: "Today, you exude a mature and charming allure, full of presence, not to be underestimated. Your intuition is sharp, seeing through others' disguises and hidden thoughts as if you have mind-reading skills. This state is perfect for handling complex relationships, deep negotiations, or resolving tricky disputes. Every word you say hits the mark, convincing everyone. Maintain this queen-like confidence; today, you are the protagonist in control.", 
+        pastLife: "In a past life, you were a favored consort in the deep palace, mastering power struggles, maneuvering through complex situations step by step.", 
+        wealthAdvice: "Believe in your intuition, especially in large transactions or contract signings. Suitable for investing in luxury goods, jewelry, or the beauty industry. Your taste is your wealth compass.", 
+        wealthOpportunity: "High-end private customization, medical aesthetics, or psychological counseling.", 
+        avoid: "Jealousy & Suspicion", 
+        luckyNum: "9", 
+        radar: [80, 70, 80, 60, 90] 
+      },
+      { 
+        name: "Peach Fuzz", 
+        hex: "#FFDAB9", 
+        desc: "Today, you are gentle and lovely, exuding the sweet scent of first love, refreshing like a spring breeze. You are very tolerant, understanding others' difficulties, and easily gaining special care from elders or superiors. Suitable for coordination work; your softness can dissolve all rigid opposition. It is also an excellent time to repair relationships. Call an old friend or cook for your family; the flow of warmth will give you huge energy.", 
+        pastLife: "In a past life, you were a lotus-picking girl in a water town, singing moving songs, conveying love between this shore and the other.", 
+        wealthAdvice: "Excellent luck with elders; you might receive gifts or red envelopes. In the workplace, being obedient and sensible gains you extra resources. Stay humble, and good luck will come naturally.", 
+        wealthOpportunity: "Maternal and child products, home decoration, gift industry, or early childhood education.", 
+        avoid: "Indecisiveness", 
+        luckyNum: "6", 
+        radar: [55, 90, 60, 50, 70] 
+      },
+      { 
+        name: "Burgundy", 
+        hex: "#800020", 
+        desc: "Today, you are deep and introverted, like aged red wine, tasting better with time. Your thoughts are profound, commanding respect without anger, giving a sense of reliable security. Very suitable for making major decisions or deep academic research. Your professionalism and rigor inspire awe. You don't need to shout; your presence itself is authority. Use this time to settle yourself and review past gains and losses; you will find the key to the future in your hands.", 
+        pastLife: "In a past life, you were a count in an ancient European castle, guarding the family's glory and secrets, with eyes hiding stories of time.", 
+        wealthAdvice: "Suitable for long-term investment, not disturbed by short-term market fluctuations. Focus on traditional industries or brands with historical heritage. Your steadiness is your greatest wealth leverage.", 
+        wealthOpportunity: "Antique collection, wine investment, historical building protection, or traditional craftsmanship.", 
+        avoid: "Stubbornness", 
+        luckyNum: "8", 
+        radar: [90, 50, 85, 60, 70] 
+      },
+
+      // --- Orange/Yellow Series (Creativity, Joy, Light) ---
+      { 
+        name: "Sunset Orange", 
+        hex: "#FFB385", 
+        desc: "Today, you are full of warmth and creativity, like the most charming afterglow of the evening, dazzling but not blinding. Your social energy is high, keenly capturing others' emotional needs and responding appropriately. This affinity is your strongest weapon today; whether negotiating, interviewing, or dating, the success rate is high. You easily become the center of attention. Keep your enthusiasm, but save some charging time for yourself.", 
+        pastLife: "In a past life, you were a wandering bard, warming passersby's hearts with moving stories and songs, delivering news from afar.", 
+        wealthAdvice: "Strong luck with side income. Due to excellent popularity, someone might offer money-making tips or unexpected small gifts. Pay attention to casual chats; business opportunities often hide in seemingly useless gossip.", 
+        wealthOpportunity: "Tips from social gatherings, second-hand bargains, or intermediary services.", 
+        avoid: "Sulking Alone", 
+        luckyNum: "9", 
+        radar: [60, 95, 80, 70, 75] 
+      },
+      { 
+        name: "Lemon Yellow", 
+        hex: "#F1C40F", 
+        desc: "Today, your thinking is jumping, curiosity abundant, like a sweet and sour lemon, full of freshness. Your brain spins fast, creative ideas endless, perfect for brainstorming, learning new skills, or planning activities. Your optimism is infectious, instantly lighting up a dull atmosphere. Today is your golden period for absorbing knowledge; anything new sparks your interest. Keep this childlike heart; it leads you to discover another side of the world.", 
+        pastLife: "In a past life, you were an explorer or inventor traveling the nations, always full of infinite desire and exploration for the unknown world.", 
+        wealthAdvice: "Opportunities to make money through information gaps increase. Your keen observation can spot market voids others ignore. Try turning your quirky ideas into practical plans; don't let inspiration slip away.", 
+        wealthOpportunity: "Content creation, education & training, creative markets, or knowledge payment.", 
+        avoid: "Starting but not finishing", 
+        luckyNum: "4", 
+        radar: [70, 80, 70, 85, 65] 
+      },
+      { 
+        name: "Amber Gold", 
+        hex: "#FFBF00", 
+        desc: "Today, you are confident and radiant, exuding a 'winner' aura. Your leadership stands out, leading the team through difficulties; everyone unconsciously wants to follow your command. Suitable for public speaking, bidding, or asking for a raise; your aura crushes all doubts. This energy is precious; use it wisely to fight for what you've always wanted but dared not ask. Today, the world is your stage.", 
+        pastLife: "In a past life, you were the leader of a desert caravan, possessing keen business sense and extraordinary courage, creating legends on the Silk Road.", 
+        wealthAdvice: "Strong main income luck, suitable for expanding business scale or making large investments. Your judgment is precise; strike boldly when you see it. Action over stillness today; taking initiative brings big rewards.", 
+        wealthOpportunity: "Gold investment, brand licensing, franchising, or high-end business cooperation.", 
+        avoid: "Arrogance", 
+        luckyNum: "1", 
+        radar: [85, 85, 90, 75, 80] 
+      },
+      { 
+        name: "Cream", 
+        hex: "#FFFDD0", 
+        desc: "Today, you are gentle and delicate, like afternoon sunlight on a cotton quilt, giving a lazy and comfortable feeling. Your patience is excellent, suitable for handling tedious details or accompanying family and children. Your presence gives those around you great security; everyone feels relaxed with you. Not suitable for radical actions today; slow down and enjoy life. Drink coffee, read a good book, find happiness in the ordinary. Your gentleness is the most powerful healing force.", 
+        pastLife: "In a past life, you were a gardener in the royal garden, caring for every flower, understanding the wisdom and patience of waiting for blooms.", 
+        wealthAdvice: "Accumulate small to make big; suitable for saving and bookkeeping. Avoid high-risk operations today; steady is true. Focus on stable financial products or making money by saving money.", 
+        wealthOpportunity: "Service industry, handicrafts, baking, or housekeeping services.", 
+        avoid: "Passive Waiting", 
+        luckyNum: "2", 
+        radar: [75, 60, 65, 50, 70] 
+      },
+      { 
+        name: "Bronze", 
+        hex: "#CD7F32", 
+        desc: "Today, you are tenacious, like bronze weathered by time, radiating primitive and heavy power. Your stress resistance is strong, able to shoulder heavy responsibilities alone; any difficulty is a paper tiger before you. Suitable for overcoming technical problems, high-intensity physical training, or handling backlog work. Your perseverance will let you complete impossible tasks today. Though the process may be hard, the final sense of achievement makes it all worth it.", 
+        pastLife: "In a past life, you were a Spartan warrior, possessing a will and physique of steel, standing tall on the battlefield.", 
+        wealthAdvice: "Hard-earned money; more work, more pay. No shortcuts today; every gain comes from your sweat. Suitable for increasing income through overtime, part-time jobs, or undertaking difficult projects.", 
+        wealthOpportunity: "Manufacturing, construction, fitness coaching, or logistics transport.", 
+        avoid: "Overwork", 
+        luckyNum: "7", 
+        radar: [95, 50, 70, 60, 60] 
+      },
+      { 
+        name: "Champagne", 
+        hex: "#F7E7CE", 
+        desc: "Today, you are elegant and calm, with good taste, revealing a noble temperament in every gesture. You have a unique appreciation for beautiful things, picky but very discerning. Suitable for art exhibitions, concerts, or high-end socializing; you will meet like-minded friends. Your aesthetic can bring unexpected opportunities today; boldly display your unique taste, it will be your best business card.", 
+        pastLife: "In a past life, you were an aristocrat at Versailles, leading the fashion trends of the time, pursuing the ultimate quality of life.", 
+        wealthAdvice: "Monetize your personal brand. Your image is worth a thousand gold; suitable for image packaging or brand promotion today. People are willing to pay for your taste, not the product itself.", 
+        wealthOpportunity: "Art trading, fashion buying, high-end etiquette training, or influencer spots.", 
+        avoid: "Vanity & Comparison", 
+        luckyNum: "6", 
+        radar: [60, 90, 80, 70, 85] 
+      },
+
+      // --- Green Series (Healing, Nature, Growth) ---
+      { 
+        name: "Mint Green", 
+        hex: "#A2E4B8", 
+        desc: "Today, you are like a fresh breeze, carrying powerful healing energy. Your inner self is in a rare state of balance, neither impatient nor depressed, as if in a morning forest covered in dew. This peaceful field makes you effortless in handling complex matters; people are unconsciously attracted to your relaxation and want to get close to you. Very suitable for subtraction today—clear thoughts or clutter that confuse you, return to the essence of life.", 
+        pastLife: "In a past life, you were a hermit herbalist in deep mountains, accompanied by grass and trees, understanding nature's language and the wind's voice.", 
+        wealthAdvice: "Stable main income luck, suitable for steady savings. Avoid high-risk speculation today; focus on long-term projects in environmental protection, health, or organic living. Health is the greatest wealth.", 
+        wealthOpportunity: "A health tip from an old friend might lead to a new business opportunity or money-saving trick.", 
+        avoid: "Over-analyzing details", 
+        luckyNum: "5", 
+        radar: [85, 60, 50, 55, 80] 
+      },
+      { 
+        name: "Forest Green", 
+        hex: "#228B22", 
+        desc: "Today, you are steady and solid, like a towering tree rooted in the earth, giving infinite trust. Your foundation is deep, not easily affected by external disturbances, always sticking to your principles. Suitable for long-term planning, asset allocation, or signing important contracts. Your foresight will be verified today. Use this stability to overcome difficulties requiring long-term investment; time is your friend.", 
+        pastLife: "In a past life, you were a druid guarding the ancient forest, mastering the laws of nature, protecting the peace of the land.", 
+        wealthAdvice: "Suitable for holding quality assets long-term; be the rose of time. Don't be scared by short-term fluctuations; stick to value investing. Suitable for buying blue-chip stocks or fixed investment today.", 
+        wealthOpportunity: "Forestry, agriculture investment, landscaping, or environmental tech.", 
+        avoid: "Sticking to old ways", 
+        luckyNum: "4", 
+        radar: [90, 50, 80, 60, 75] 
+      },
+      { 
+        name: "Olive", 
+        hex: "#808000", 
+        desc: "Today, you are a pacifist, skilled at finding balance in conflict. Your wisdom comes from rich experience, seeing both sides of things, unbiased. Suitable for roles like consultant, mediator, or arbitrator; your fairness wins respect from both sides. Also a good time to resolve grudges; your tolerance can turn hostility into friendship. Maintain this middle way; it is your wisdom for survival in complex networks.", 
+        pastLife: "In a past life, you were a philosopher in ancient Greece, pondering the dialectics of peace and justice in the square, enlightening the world.", 
+        wealthAdvice: "Harmony brings wealth, cooperation wins together. Don't eat alone today; find partners, sharing benefits makes the cake bigger. Resolving others' conflicts can also bring income.", 
+        wealthOpportunity: "Consulting services, legal aid, matchmaking, or intermediary guarantees.", 
+        avoid: "Indecision", 
+        luckyNum: "2", 
+        radar: [80, 70, 60, 55, 85] 
+      },
+      { 
+        name: "Lime", 
+        hex: "#32CD32", 
+        desc: "Today, you are vibrant and fully charged, like a sprouting bud, full of desire for the world. Your thinking is extremely active, always finding shortcuts others can't see. Suitable for rapid iteration, trying new things, or brainstorming. Don't fear making mistakes; every attempt today is valuable experience. Your vitality infects everyone; people want to follow your lead. Use this energy to break old rules.", 
+        pastLife: "In a past life, you were an explorer in the jungle, flexibly responding to sudden crises, opening new paths in the unknown.", 
+        wealthAdvice: "Fast in, fast out, seize short-term dividends. Suitable for short-term swing trading or trying niche emerging projects. Be fast and stylish.", 
+        wealthOpportunity: "Internet startups, trend following, pop-up stores, or live streaming sales.", 
+        avoid: "Restlessness", 
+        luckyNum: "3", 
+        radar: [70, 80, 75, 85, 65] 
+      },
+      { 
+        name: "Malachite", 
+        hex: "#0BDA51", 
+        desc: "Today, you are noble and elegant, with extraordinary temperament, like a peacock spreading its tail, stunning. Your aesthetic is unique and high-class, easily gaining appreciation and pursuit. Suitable for self-display, artistic creation, or participating in talent shows. You don't need to cater to the masses; your uniqueness is the biggest selling point. Also a good time to improve personal image; a new hairstyle or outfit will attract more good luck.", 
+        pastLife: "In a past life, you were a jeweler in the Persian palace, handcrafting heirlooms, with an extreme paranoia for beauty.", 
+        wealthAdvice: "Aesthetics monetization; design work is a gold mine. Your taste brings high premiums. Suitable for beauty-related side jobs today, like illustration, photography, or design commissions.", 
+        wealthOpportunity: "Jewelry design, high-end soft decoration, art curation, or personal IP building.", 
+        avoid: "Narcissism", 
+        luckyNum: "8", 
+        radar: [65, 60, 85, 80, 90] 
+      },
+      { 
+        name: "Sage", 
+        hex: "#9DC183", 
+        desc: "Today, you are wise and transparent, indifferent to gain and loss, with a transcendent fairy air. Your soul is in deep purification, suitable for spiritual cultivation, meditation, or reading philosophy. You speak little, but every word wakes the dreamer. Be a listener today; you'll find many looking for a spiritual exit, and you are the guide. Keep inner peace; external noise cannot disturb you.", 
+        pastLife: "In a past life, you were a wise man living in seclusion in the mountains, guiding lost travelers.", 
+        wealthAdvice: "Knowledge payment, teaching. Your wisdom is priceless; monetize through writing, lecturing, or consulting. People are willing to pay for peace of mind.", 
+        wealthOpportunity: "Psychological counseling, yoga meditation training, tea/flower ceremony, or paid columns.", 
+        avoid: "Preaching", 
+        luckyNum: "7", 
+        radar: [85, 50, 60, 60, 95] 
+      },
+
+      // --- Blue Series (Logic, Peace, Depth) ---
+      { 
+        name: "Deep Ocean", 
+        hex: "#4A6FA5", 
+        desc: "Today, you are deep and rational, with logic as clear as crystal. You seem to dive into the deep sea, shielding all external noise, focusing only on inner exploration and thinking. This state is perfect for handling complex data, planning future career blueprints, or deep reading. Though you may seem cold or distant, your professionalism and calmness win respect and trust.", 
+        pastLife: "In a past life, you were a court astrologer in charge of star charts, looking up at the starry sky in silent nights, interpreting fate's trajectory.", 
+        wealthAdvice: "Sharp financial intuition, suitable for reviewing bills, optimizing asset allocation, or researching new investment strategies. Avoid emotional spending; every expense should be well thought out. Rationality is your root of making money.", 
+        wealthOpportunity: "Income via knowledge payment, skill sharing, data analysis consulting; your expertise is money.", 
+        avoid: "Emotional Decisions", 
+        luckyNum: "2", 
+        radar: [95, 50, 75, 60, 85] 
+      },
+      { 
+        name: "Sky Blue", 
+        hex: "#87CEEB", 
+        desc: "Today, you are open-minded, like the boundless sky, accepting everything. Your mindset is excellent, not fussing over trifles; this open-mindedness makes you popular. Suitable for long-distance travel, outdoor sports, or planning life visions. You'll find that when you stop staring at immediate struggles, distant poetry emerges. Suitable for dreaming and departing today; go to the wider world for inspiration.", 
+        pastLife: "In a past life, you were an eagle soaring in the sky, yearning for absolute freedom, overlooking the earth's grandeur.", 
+        wealthAdvice: "Look long-term, invest in the future. Don't be blinded by small immediate profits; see the big trend. Suitable for investing in education, tourism, or 'distant' projects today.", 
+        wealthOpportunity: "Tourism, aviation-related, study abroad consulting, or outdoor gear.", 
+        avoid: "Unrealistic Daydreaming", 
+        luckyNum: "5", 
+        radar: [70, 80, 65, 75, 70] 
+      },
+      { 
+        name: "Electric Blue", 
+        hex: "#7DF9FF", 
+        desc: "Today, your thinking is agile, reaction fast, like lightning cutting through the night sky. You are passionate about tech and new things, learning ability off the charts. Suitable for coding, fixing bugs, esports, or researching AI tools. Your brain is overclocking; any problem is weak before you. Seize this fleeting spark of inspiration; it might be a world-changing idea.", 
+        pastLife: "In a past life, you were a scientist in Atlantis, mastering advanced tech and energy secrets, exploring the universe's truth.", 
+        wealthAdvice: "Tech monetization, tech stock investment. Pay attention to frontier tech trends; your acuity helps catch the next wind. Suitable for buying tech funds or crypto (cautiously).", 
+        wealthOpportunity: "AI, blockchain, programming dev, esports, or digital reviews.", 
+        avoid: "Eye Strain", 
+        luckyNum: "1", 
+        radar: [95, 50, 85, 90, 80] 
+      },
+      { 
+        name: "Tiffany", 
+        hex: "#0ABAB5", 
+        desc: "Today, you are exquisite and elegant, pursuing perfection, with high demands for quality of life. You tolerate no flaws in work or life. Suitable for high-end consumption, enjoying afternoon tea, or organizing your closet. Your exquisiteness isn't pretension, but love for life. Today, details will move people, and your taste becomes a benchmark. Enjoy this elegance; you deserve the best.", 
+        pastLife: "In a past life, you were a Victorian lady living in an exquisite manor, full of etiquette and breeding.", 
+        wealthAdvice: "Brand premium, target the high-end market. Don't compete on price; enhance value-add. Suitable for buying value-retaining luxury goods or investing in high-end services.", 
+        wealthOpportunity: "Luxury care, high-end gift customization, wedding planning, or fine dining.", 
+        avoid: "Being too picky", 
+        luckyNum: "6", 
+        radar: [60, 70, 80, 65, 85] 
+      },
+      { 
+        name: "Navy", 
+        hex: "#000080", 
+        desc: "Today, you are authoritative and steady, trustworthy, like a veteran commander. Your discipline is strong, strictly executing plans. Suitable for management roles, rule-making, or project acceptance. Your seriousness might pressure others, but this pressure guarantees efficiency and quality. A good time to establish prestige; speak with results.", 
+        pastLife: "In a past life, you were a navy fleet commander, commanding calmly in stormy seas, conquering the stars and sea.", 
+        wealthAdvice: "Steady investment, avoid risk. Don't be rash today; suitable for risk control or auditing. Your rigor helps find contract loopholes, avoiding huge losses.", 
+        wealthOpportunity: "Corporate management consulting, legal advisor, security services, or quality inspection.", 
+        avoid: "Rigidity", 
+        luckyNum: "8", 
+        radar: [90, 60, 85, 50, 70] 
+      },
+      { 
+        name: "Dusty Blue", 
+        hex: "#5B7C99", 
+        desc: "Today, you are melancholic and charming, like misty rain, impenetrable. Your emotions are delicate and rich, easily empathizing. Suitable for literary creation, watching tragedies, or listening to sad love songs. Your fragility becomes a unique attraction, making people want to protect you. Use this sensitivity to create; tragedies often shock the heart more than comedies.", 
+        pastLife: "In a past life, you were a lighthouse keeper waiting for a returnee, watching loneliness in long years, listening to the waves.", 
+        wealthAdvice: "Emotional stability is the first productive force. Be careful of impulsive spending due to low mood. Turn emotions into creative motivation; your work will move people with its authenticity.", 
+        wealthOpportunity: "Emotional blogger, novel writing, psychological healing, or late-night radio.", 
+        avoid: "Dwelling on the past", 
+        luckyNum: "4", 
+        radar: [75, 50, 50, 80, 90] 
+      },
+
+      // --- Purple/Spirit Series (Intuition, Mystery, Magic) ---
+      { 
+        name: "Aurora Purple", 
+        hex: "#B39DDB", 
+        desc: "Today, your spiritual intuition explodes, as if opening a third eye. You are sensitive to energy changes, even predicting small future events. This mysterious state is perfect for meditation, art creation, or long-term visioning. Your unique temperament makes you stand out, full of mysterious attraction. Trust your gut; it's often more accurate than logic.", 
+        pastLife: "In a past life, you were a tribal medium or priest, connecting human and divine worlds, delivering oracles.", 
+        wealthAdvice: "Trust your intuition; if a project feels off, stop immediately. Go with the flow today, don't force it. Sometimes luck is more important than effort.", 
+        wealthOpportunity: "Art collection, metaphysics consulting, tarot reading, or creative side jobs.", 
+        avoid: "Noisy Environments", 
+        luckyNum: "7", 
+        radar: [70, 50, 65, 85, 95] 
+      },
+      { 
+        name: "Lavender", 
+        hex: "#E6E6FA", 
+        desc: "Today, you are soothing and calm, carrying a faint scent, relaxing everyone. Your presence calms others' anxiety. Suitable for aromatherapy, yoga, or a hot bath. Your gentleness is the greatest power. Treat yourself well today; a SPA or good sleep—only by taking care of yourself can you love the world better.", 
+        pastLife: "In a past life, you were a flower farmer in Provence, accompanied by flower fields, selling romance and scent.", 
+        wealthAdvice: "Healing economy, helping others helps yourself. Your affinity suits service industries. You might receive gifts from female elders or friends today.", 
+        wealthOpportunity: "Aromatherapist, yoga instructor, sleep economy, or fragrance industry.", 
+        avoid: "Excessive Anxiety", 
+        luckyNum: "2", 
+        radar: [60, 70, 55, 60, 85] 
+      },
+      { 
+        name: "Royal Purple", 
+        hex: "#7851A9", 
+        desc: "Today, you are noble, a born leader, as if wearing a crown. Your aura is strong, commanding attention instantly. Suitable for hosting, major decisions, or team management. Your confidence crushes all opposition. Remember, heavy is the head that wears the crown; enjoy power but bear the responsibility. Today, you are the king here.", 
+        pastLife: "In a past life, you were a Roman senator, wearing purple robes, holding the core power of the empire.", 
+        wealthAdvice: "Big picture brings big money. Focus on macroeconomics today. Strategic thinking is key; don't get tangled in details. Your decisions influence future wealth patterns.", 
+        wealthOpportunity: "Real estate investment, financial giants, M&A, or high-end clubs.", 
+        avoid: "Dictatorship", 
+        luckyNum: "1", 
+        radar: [90, 60, 95, 70, 85] 
+      },
+      { 
+        name: "Lilac", 
+        hex: "#C8A2C8", 
+        desc: "Today, you are nostalgic and romantic, sentimental like an old yellowed poem. You remember the past clearly, easily touched by scenes. Suitable for organizing old items, journaling, or looking at old photos. Your delicacy touches hearts; works created today often have a strong story feel. Visit a vintage shop or listen to old songs to find inspiration in time's cracks.", 
+        pastLife: "In a past life, you were a singer in old Shanghai, singing the joys and sorrows of the world in neon lights.", 
+        wealthAdvice: "Nostalgia economy, retro trend. Your retro taste brings business opportunities. Suitable for thrifting or selling idle items to recover blood.", 
+        wealthOpportunity: "Vintage shops, nostalgic snacks, photo restoration, or second-hand bookstores.", 
+        avoid: "Pessimism", 
+        luckyNum: "4", 
+        radar: [50, 70, 60, 80, 80] 
+      },
+      { 
+        name: "Indigo", 
+        hex: "#4B0082", 
+        desc: "Today, your insight is strong, gaze piercing, pointing straight to the heart. No one can lie to you. Suitable for psychoanalysis, investigation, or exposing lies. You are interested in mysticism, eager to explore the truth. Your sixth sense is terrifyingly accurate today; trust it. Your deep thinking lets you see the essence others miss.", 
+        pastLife: "In a past life, you were an alchemist in a mysterious organization, seeking universal truth and immortality in dark labs.", 
+        wealthAdvice: "Dig hidden value, do niche business. Suitable for researching unknown niche fields. Your wealth often comes from information asymmetry.", 
+        wealthOpportunity: "Psychological consulting, private detective, intelligence analysis, or crypto.", 
+        avoid: "Suspicion", 
+        luckyNum: "9", 
+        radar: [85, 50, 80, 70, 95] 
+      },
+      { 
+        name: "Plum", 
+        hex: "#DDA0DD", 
+        desc: "Today, you are mature and charming, like a ripe plum. Your experience makes you calm and at ease in various occasions. Suitable for social mediation, organizing dinners, or handling complex interpersonal disputes. Your high EQ dissolves awkwardness. A good time to expand high-end connections; your charm is unstoppable.", 
+        pastLife: "In a past life, you were a Victorian countess, a socialite navigating balls with ease.", 
+        wealthAdvice: "Monetize social circles. Friends are wealth. Suitable for earning commissions or returns by introducing resources or matchmaking today.", 
+        wealthOpportunity: "High-end clubs, private houses, matchmaking, or executive search.", 
+        avoid: "Snobbery", 
+        luckyNum: "6", 
+        radar: [70, 90, 85, 60, 80] 
+      },
+
+      // --- Neutral/Special Series (Balance, Mystery, Void) ---
+      { 
+        name: "Moonlight White", 
+        hex: "#F8F9FA", 
+        desc: "Today, you are pure and transparent, heart calm as still water. You seem to press the life reset button, eager to clear complex relationships and thoughts, returning to the simplest state. This minimalist energy field gives you high tolerance, viewing everything objectively. Perfect for decluttering, whether room or social circle. In the void, you see what you truly want.", 
+        pastLife: "In a past life, you were a monk in snowy mountains, realizing life's truth in extreme purity and solitude.", 
+        wealthAdvice: "Flat but steady wealth luck, suitable for long-term saving plans. No impulsive spending today; cash flow is king. Minimalist living saves a fortune.", 
+        wealthOpportunity: "Organization consulting, minimalist lifestyle promotion, or eco-friendly products.", 
+        avoid: "Indifference", 
+        luckyNum: "0", 
+        radar: [85, 50, 45, 60, 80] 
+      },
+      { 
+        name: "Midnight Black", 
+        hex: "#2C3E50", 
+        desc: "Today, you are mysterious and deep, exuding awesome authority. You tend to hide true thoughts, controlling the situation from behind the scenes. This low-key but powerful energy lets you protect yourself in complex situations and accumulate strength secretly. Suitable for handling core secret affairs alone or deep self-dialogue. Your defense is strong; outsiders can't see your cards—your winning formula.", 
+        pastLife: "In a past life, you were a royal shadow guard or secret agent, guarding the order of light in darkness.", 
+        wealthAdvice: "Excellent side wealth luck, especially for undisclosed behind-the-scenes deals or long-term lurking investments. Hiding wealth is the way today.", 
+        wealthOpportunity: "Confidential private customization, cybersecurity, or IP protection.", 
+        avoid: "Excessive Suspicion", 
+        luckyNum: "8", 
+        radar: [95, 50, 90, 70, 85] 
+      },
+      { 
+        name: "Premium Grey", 
+        hex: "#A9A9A9", 
+        desc: "Today, you are low-key and introverted, focusing on texture, not following the crowd. You stick to your taste and principles, disdaining mediocrity. Suitable for independent thinking, design work, or appreciating minimalist art. Your calmness keeps you sober in noise. You'll find high class comes from restraint. Keep this alienation; it makes you look extraordinary.", 
+        pastLife: "In a past life, you were a lonely architect, building ideal cities with gray concrete, pursuing extreme rationality.", 
+        wealthAdvice: "Progress in stability, avoid risk. Don't blindly follow trends today; have your own judgment. Invest in undervalued but potential assets; time will prove your vision.", 
+        wealthOpportunity: "Industrial design, architectural planning, B&W photography, or niche buyer shops.", 
+        avoid: "Escapism", 
+        luckyNum: "7", 
+        radar: [80, 50, 60, 75, 70] 
+      },
+      { 
+        name: "Graphite", 
+        hex: "#36454F", 
+        desc: "Today, you are calm and objective, without emotional color, like a precision instrument. Your logical analysis is strong, suitable for handling boring data, legal clauses, or scientific experiments. Impartiality is your label; you only believe facts and evidence. You will perform very professionally at work today, solving problems efficiently, winning colleagues' trust.", 
+        pastLife: "In a past life, you were a selfless judge, maintaining justice in court, fearing no power, guarding the dignity of law.", 
+        wealthAdvice: "Monetize profession, eat by skills. Your professional skills are an irreplaceable barrier. Suitable for getting certificates or improving skills today, laying the foundation for future raises.", 
+        wealthOpportunity: "Auditing, legal advisor, data analyst, or actuary.", 
+        avoid: "Cold-bloodedness", 
+        luckyNum: "5", 
+        radar: [90, 50, 80, 60, 70] 
+      },
+      { 
+        name: "Pearl", 
+        hex: "#EAE0C8", 
+        desc: "Today, you are warm as jade, with introverted luster, not dazzling but impossible to ignore. You have experienced life's polishing, now radiating charming brilliance—the sedimentation of wisdom. Suitable for jewelry appreciation, tea ceremony, or talking with wise men. Your tolerance accepts all imperfections. You'll find true strength isn't showing off, but gentle persistence.", 
+        pastLife: "In a past life, you were a mermaid in the deep sea, guarding millennial pearls in darkness, enduring loneliness, nurturing beauty.", 
+        wealthAdvice: "Invest in value-retaining assets. Suitable for buying gold, jewelry, or real estate today. Your wealth needs time accumulation; don't rush.", 
+        wealthOpportunity: "Jewelry appraisal, antique collection, high-end tea rooms, or pearl farming.", 
+        avoid: "Self-pity", 
+        luckyNum: "2", 
+        radar: [70, 60, 85, 65, 80] 
+      },
+      { 
+        name: "Holographic", 
+        hex: "#E0FFFF", 
+        desc: "Today, you are unpredictable, possessing infinite possibilities, like elusive light. Your mood changes with the environment, adaptability strong, quickly blending into any new setting. Suitable for trying crossover cooperation, starting a slasher life, or improv performance. Your versatility shines in every field. Don't limit yourself today; explore unknown boundaries, surprises are around the corner.", 
+        pastLife: "In a past life, you were a time traveler, experiencing thousands of lives, possessing countless names and identities.", 
+        wealthAdvice: "Multi-channel income, don't put eggs in one basket. Try developing side jobs; your versatility brings multiple income sources.", 
+        wealthOpportunity: "Slasher youth, crossover co-branding, self-media matrix, or creative planning.", 
+        avoid: "Undisciplined", 
+        luckyNum: "0", 
+        radar: [50, 80, 70, 90, 85] 
+      }
+    ];
+
+    let currentQ = 0;
+    let userAnswers = [];
+    let radarChart = null;
+
+    // DOM Elements
+    const body = document.body;
+    const startBtn = document.getElementById("startBtn");
+    const screenWelcome = document.getElementById("screen-welcome");
+    const screenQuiz = document.getElementById("screen-quiz");
+    const screenRitual = document.getElementById("screen-ritual");
+    const screenResult = document.getElementById("screen-result");
+    const questionText = document.getElementById("questionText");
+    const optionsContainer = document.getElementById("optionsContainer");
+    const progressText = document.getElementById("progressText");
+    const auroraBg = document.getElementById("auroraBg");
+    const analyticsConfig = {
+      gaId: "G-HY4VJKYLJ4",
+      metaPixelId: "000000000000000",
+      tiktokPixelId: "D6EU923C77U3L7SPCSMG"
+    };
+
+    const isValidId = (id) => typeof id === "string" && id.trim() && !id.includes("XXXX");
+
+    const loadGa = (id) => {
+      if (!isValidId(id)) return;
+      const gaScript = document.createElement("script");
+      gaScript.async = true;
+      gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
+      document.head.appendChild(gaScript);
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = window.gtag || gtag;
+      window.gtag("js", new Date());
+      window.gtag("config", id);
+    };
+
+    const loadMetaPixel = (id) => {
+      if (!isValidId(id)) return;
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,"script",
+      "https://connect.facebook.net/en_US/fbevents.js");
+      fbq("init", id);
+      fbq("track", "PageView");
+    };
+
+    const loadTikTokPixel = (id) => {
+      if (!isValidId(id)) return;
+      !function (w, d, t) {
+        w.TiktokAnalyticsObject = t;
+        var ttq = w[t] = w[t] || [];
+        ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"];
+        ttq.setAndDefer = function (t, e) {
+          t[e] = function () {
+            t.push([e].concat(Array.prototype.slice.call(arguments, 0)));
+          };
+        };
+        for (var i = 0; i < ttq.methods.length; i++) {
+          ttq.setAndDefer(ttq, ttq.methods[i]);
+        }
+        ttq.instance = function (t) {
+          for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) {
+            ttq.setAndDefer(e, ttq.methods[n]);
+          }
+          return e;
+        };
+        ttq.load = function (e, n) {
+          var i = "https://analytics.tiktok.com/i18n/pixel/events.js";
+          ttq._i = ttq._i || {};
+          ttq._i[e] = [];
+          ttq._i[e]._u = i;
+          ttq._t = ttq._t || {};
+          ttq._t[e] = +new Date();
+          ttq._o = ttq._o || {};
+          ttq._o[e] = n || {};
+          var o = document.createElement("script");
+          o.type = "text/javascript";
+          o.async = true;
+          o.src = i + "?sdkid=" + e + "&lib=" + t;
+          var a = document.getElementsByTagName("script")[0];
+          a.parentNode.insertBefore(o, a);
+        };
+        ttq.load(id);
+        ttq.page();
+      }(window, document, "ttq");
+    };
+
+    const trackEvent = (name, params = {}) => {
+      if (window.gtag) window.gtag("event", name, params);
+      if (window.fbq) window.fbq("trackCustom", name, params);
+      if (window.ttq) window.ttq.track(name, params);
+    };
+
+    loadGa(analyticsConfig.gaId);
+    loadMetaPixel(analyticsConfig.metaPixelId);
+    loadTikTokPixel(analyticsConfig.tiktokPixelId);
+
+    // --- Init DOB Selects ---
+    const yearSel = document.getElementById("dob-year");
+    const monthSel = document.getElementById("dob-month");
+    const daySel = document.getElementById("dob-day");
+    const confirmDobBtn = document.getElementById("confirmDobBtn");
+    
+    // Populate Years (1950-2025)
+    for (let y = 2025; y >= 1950; y--) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      yearSel.appendChild(opt);
+    }
+    // Populate Months
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = monthNames[m-1]; // English
+      monthSel.appendChild(opt);
+    }
+    // Populate Days
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d; // Just number
+      daySel.appendChild(opt);
+    }
+
+    // Enable button when all selected
+    function checkDob() {
+      confirmDobBtn.disabled = !(yearSel.value && monthSel.value && daySel.value);
+    }
+    yearSel.onchange = checkDob;
+    monthSel.onchange = checkDob;
+    daySel.onchange = checkDob;
+
+    // Helper: Haptic Feedback
+    function vibrate(pattern) {
+      if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+      }
+    }
+
+    // Start
+    startBtn.onclick = () => {
+      screenWelcome.classList.add("hidden");
+      document.getElementById("screen-dob").classList.remove("hidden");
+      trackEvent("start_quiz");
+    };
+
+    confirmDobBtn.onclick = () => {
+      document.getElementById("screen-dob").classList.add("hidden");
+      screenQuiz.classList.remove("hidden");
+      renderQuestion();
+      trackEvent("dob_confirmed");
+    };
+
+    function renderQuestion() {
+      const q = questions[currentQ];
+      progressText.textContent = `Question ${currentQ + 1}/${questions.length}`;
+      questionText.textContent = q.text;
+      
+      // Animation reset
+      questionText.classList.remove("fade-enter-active");
+      void questionText.offsetWidth;
+      questionText.classList.add("fade-enter-active");
+
+      optionsContainer.innerHTML = "";
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn w-full p-4 rounded-xl glass text-left text-sm font-medium hover:bg-white/80 flex justify-between items-center group";
+        btn.innerHTML = `<span>${opt}</span><span class="opacity-0 group-hover:opacity-100 transition-opacity">→</span>`;
+        btn.onclick = () => handleAnswer(q.colors[idx], idx);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(colorHex, optionIndex) {
+      userAnswers.push(colorHex);
+      trackEvent("quiz_answer", { question_index: currentQ + 1, option_index: optionIndex + 1 });
+      
+      // Haptic Feedback (Heartbeat)
+      vibrate([50, 100, 50]);
+
+      // Dynamic Background Change
+      body.style.backgroundColor = colorHex + "40"; // 25% opacity
+      
+      if (currentQ < questions.length - 1) {
+        currentQ++;
+        setTimeout(renderQuestion, 200);
+      } else {
+        startRitual();
+        trackEvent("quiz_complete");
+      }
+    }
+
+    function startRitual() {
+      screenQuiz.classList.add("hidden");
+      screenRitual.classList.remove("hidden");
+      auroraBg.classList.add("aurora-active");
+      
+      // Start Ritual Vibrate
+      vibrate([50, 50, 50]);
+
+      const ritualText = document.getElementById("ritualText");
+      const messages = [
+        "Sensing your energy frequency...",
+        "Analyzing subconscious responses...",
+        "Extracting your color of the day..."
+      ];
+      
+      let msgIdx = 0;
+      ritualText.textContent = messages[0];
+      
+      const interval = setInterval(() => {
+        msgIdx++;
+        if (msgIdx < messages.length) {
+          // Fade out
+          ritualText.classList.remove("opacity-100");
+          ritualText.classList.add("opacity-0");
+          
+          setTimeout(() => {
+            ritualText.textContent = messages[msgIdx];
+            // Fade in
+            ritualText.classList.remove("opacity-0");
+            ritualText.classList.add("opacity-100");
+            
+            // Step Change Vibrate (Heartbeat style)
+            vibrate([30, 50, 30]);
+          }, 500); // Wait for fade out
+        } else {
+          clearInterval(interval);
+        }
+      }, 1200);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        showResult();
+      }, 4000);
+    }
+
+    function showResult() {
+      screenRitual.classList.add("hidden");
+      screenResult.classList.remove("hidden");
+      auroraBg.classList.remove("aurora-active");
+      body.style.backgroundColor = "#F3F4F6"; // Reset bg
+
+      // Haptic Feedback (Long)
+      vibrate(200);
+
+      // Enhanced Algorithm: Dual Hash
+      // 1. Quiz Hash (Personality Preference)
+      let quizHash = 0;
+      userAnswers.forEach(hex => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        quizHash += (r + g + b);
+      });
+
+      // 2. DOB Hash (Destiny Code)
+      const y = parseInt(yearSel.value);
+      const m = parseInt(monthSel.value);
+      const d = parseInt(daySel.value);
+      // Weighted sum to create unique destiny code
+      const dobHash = (y * 13) + (m * 7) + d;
+
+      // 3. Final Fusion (DOB * 11 ensures significant shift based on birth date)
+      const finalScore = quizHash + (dobHash * 11);
+      
+      const resIndex = finalScore % results.length;
+      const res = results[resIndex];
+
+      // --- 1. Fill Detailed Analysis (Screen Result) ---
+      document.getElementById("resultColorName").textContent = res.name;
+      document.getElementById("resultColorCircle").style.backgroundColor = res.hex;
+      
+      // Deterministic Random Helper (Seed based)
+      const getSeededRandom = (seed) => {
+        const x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+      };
+
+      const insightIndex = Math.floor(getSeededRandom(finalScore) * oddlySpecificPhrases.length);
+      const randomInsight = oddlySpecificPhrases[insightIndex];
+      
+      document.getElementById("resultDesc").innerHTML = `${res.desc} <br><br><strong>Today's Insight:</strong> ${randomInsight}`;
+      
+      document.getElementById("pastLifeText").textContent = res.pastLife;
+      
+      const energyVal = Math.floor(70 + getSeededRandom(finalScore + 42) * 30);
+      document.getElementById("energyScore").textContent = energyVal + "%";
+      document.getElementById("wealthAdvice").textContent = res.wealthAdvice;
+      document.getElementById("wealthOpportunity").textContent = res.wealthOpportunity;
+
+      // Radar Chart
+      const ctx = document.getElementById("radarChart");
+      if (window.myRadarChart) window.myRadarChart.destroy();
+      window.myRadarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Focus', 'Social', 'Wealth', 'Creativity', 'Intuition'],
+          datasets: [{
+            data: res.radar,
+            backgroundColor: res.hex + '40',
+            borderColor: res.hex,
+            pointBackgroundColor: res.hex,
+            borderWidth: 2
+          }]
+        },
+        options: {
+            layout: { padding: 2 },
+            scales: {
+              r: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { display: false },
+                pointLabels: { font: { size: 9, family: "Arial" }, color: "#999" }
+              }
+            },
+            plugins: { legend: { display: false } }
+          }
+      });
+
+      // --- 2. Fill Poster Card (Screen Poster) ---
+      document.getElementById("posterCircle").style.backgroundColor = res.hex;
+      document.getElementById("posterGlow").style.backgroundColor = res.hex;
+      document.getElementById("posterColorTitle").textContent = res.name.split(" (")[0];
+      document.getElementById("posterColorTitle").style.color = res.hex;
+      document.getElementById("posterHexCode").textContent = res.hex;
+      document.getElementById("posterLucky").textContent = res.luckyNum;
+      document.getElementById("posterAvoidDisplay").textContent = res.avoid;
+      
+      const date = new Date();
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      document.getElementById("posterDateDisplay").textContent = `${months[date.getMonth()]} ${date.getDate()}`;
+      document.getElementById("posterInsight").textContent = randomInsight;
+      trackEvent("result_view", { color_name: res.name, color_hex: res.hex, result_index: resIndex + 1 });
+    }
+
+    // --- Unlock Logic ---
+    const unlockBtn = document.getElementById("unlockBtn");
+    const wealthGuide = document.getElementById("wealthGuide");
+    const unlockOverlay = document.getElementById("unlockOverlay");
+    
+    if(unlockBtn) {
+        unlockBtn.onclick = () => {
+        // Simulate Ad Watch
+        unlockBtn.innerHTML = "Playing Ad...";
+        trackEvent("wealth_unlock_click");
+        setTimeout(() => {
+            wealthGuide.classList.remove("blurred-content");
+            wealthGuide.classList.add("unblurred");
+            unlockOverlay.classList.add("hidden");
+            trackEvent("wealth_unlocked");
+        }, 2000);
+        };
+    }
+
+    // --- Navigation Logic ---
+    const goToPosterBtn = document.getElementById("goToPosterBtn");
+    const backToResultBtn = document.getElementById("backToResultBtn");
+    const screenPoster = document.getElementById("screen-poster");
+
+    goToPosterBtn.onclick = () => {
+      screenResult.classList.add("hidden");
+      screenPoster.classList.remove("hidden");
+      window.scrollTo(0, 0);
+      trackEvent("poster_view");
+    };
+
+    backToResultBtn.onclick = () => {
+      screenPoster.classList.add("hidden");
+      screenResult.classList.remove("hidden");
+      trackEvent("back_to_analysis");
+    };
+
+    // --- Smart Share Logic (Poster Screen) ---
+    const shareSocialBtn = document.getElementById("shareSocialBtn");
+    const longPressSaveBtn = document.getElementById("longPressSaveBtn");
+    const posterCard = document.getElementById("poster-card");
+    
+    // Modal Elements (Moved up for scope access)
+    const posterModal = document.getElementById("posterModal");
+    const posterImage = document.getElementById("posterImage");
+    const closePosterBtn = document.getElementById("closePosterBtn");
+    const downloadLink = document.getElementById("downloadLink");
+
+    // Hide redundant button
+    if(downloadLink) downloadLink.style.display = 'none';
+
+    closePosterBtn.onclick = () => {
+      posterModal.classList.add("hidden");
+    };
+
+    // Helper: Generate Blob from DOM
+    async function capturePoster() {
+      try {
+        const canvas = await html2canvas(posterCard, {
+          scale: 3, // High resolution
+          useCORS: true,
+          backgroundColor: '#F3F4F6', // Use the page background color to prevent transparency
+        });
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      } catch (e) {
+        console.error("Capture failed", e);
+        return null;
+      }
+    }
+
+    // 1. Share to Social Media
+    shareSocialBtn.onclick = async () => {
+      const originalText = shareSocialBtn.innerHTML;
+      shareSocialBtn.disabled = true;
+      shareSocialBtn.innerHTML = "Generating...";
+      trackEvent("poster_share_click");
+
+      const blob = await capturePoster();
+      if (!blob) {
+        alert("Failed to generate poster.");
+        trackEvent("poster_share_failed");
+        shareSocialBtn.disabled = false;
+        shareSocialBtn.innerHTML = originalText;
+        return;
+      }
+
+      const file = new File([blob], "soul-color.png", { type: "image/png" });
+      const isSecure = window.isSecureContext;
+
+      if (isSecure && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'My Soul Color',
+            text: 'Check out my soul color!'
+          });
+          trackEvent("poster_share_success");
+        } catch (error) {
+          console.log('Share dismissed/failed', error);
+          // If share fails/dismissed, fallback to modal
+          const url = URL.createObjectURL(blob);
+          posterImage.src = url;
+          posterModal.classList.remove("hidden");
+          trackEvent("poster_share_fallback");
+          showToast("Share failed. Long press image to save!");
+        }
+      } else {
+        // Fallback for desktop/unsupported: Show Image Modal
+        const url = URL.createObjectURL(blob);
+        posterImage.src = url;
+        posterModal.classList.remove("hidden");
+        trackEvent("poster_share_fallback");
+        showToast("Long press the image to save!");
+      }
+
+      shareSocialBtn.disabled = false;
+      shareSocialBtn.innerHTML = originalText;
+    };
+
+    // 2. Long Press Save (Refined: Show Image Modal)
+    longPressSaveBtn.onclick = async () => {
+      const originalText = longPressSaveBtn.innerHTML;
+      longPressSaveBtn.disabled = true;
+      longPressSaveBtn.innerHTML = "Generating...";
+      trackEvent("poster_save_click");
+
+      const blob = await capturePoster();
+      if (!blob) {
+         trackEvent("poster_save_failed");
+         longPressSaveBtn.disabled = false;
+         longPressSaveBtn.innerHTML = originalText;
+         return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      posterImage.src = url;
+      posterModal.classList.remove("hidden");
+      trackEvent("poster_save_modal");
+      
+      showToast("👆 Long press the image to save!");
+
+      longPressSaveBtn.disabled = false;
+      longPressSaveBtn.innerHTML = originalText;
+    };
+
+    // Helper: Simple Toast
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-black/80 text-white text-xs py-3 px-6 rounded-full shadow-xl z-[60] fade-enter-active";
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 500);
+      }, 3000);
+    }
+
+  </script>
+</body>
+</html>
